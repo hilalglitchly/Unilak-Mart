@@ -1,9 +1,9 @@
 # Keputusan Lingkup & Arsitektur MVP Web UnilakMart (Rilis 1)
 
-Dokumen ini mencatat seluruh keputusan final hasil wawancara penentuan lingkup **MVP Web UnilakMart (Rilis 1)** sebagai acuan bersama tim pengembang, penyelarasan [SRS UnilakMart (IEEE 830).md](../SRS%20UnilakMart%20(IEEE%20830).md), dan implementasi awal.
+Dokumen ini mencatat seluruh keputusan final hasil wawancara penentuan lingkup **MVP Web UnilakMart (Rilis 1)** sebagai acuan bersama tim pengembang, penyelarasan [SRS.md](SRS.md), dan implementasi awal.
 
 - **Tanggal keputusan**: 9 November 2026
-- **Basis dokumen**: `SRS UnilakMart (IEEE 830).md` v1.0
+- **Basis dokumen**: [SRS.md](SRS.md) v1.0 (semula `SRS UnilakMart (IEEE 830).md`)
 - **Status**: Disepakati
 
 ---
