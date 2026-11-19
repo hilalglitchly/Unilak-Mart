@@ -169,6 +169,46 @@
   }
 }
 
+.listing-card-shell {
+  container-type: inline-size;
+}
+
+.listing-card-body {
+  padding: 0.625rem;
+}
+
+.listing-card-meta {
+  font-size: 0.6875rem;
+}
+
+.listing-card-detail {
+  display: none;
+}
+
+@container (min-width: 220px) {
+  .listing-card-body {
+    padding: 0.875rem;
+  }
+
+  .listing-card-meta {
+    font-size: 0.75rem;
+  }
+
+  .listing-card-detail {
+    display: inline-flex;
+  }
+}
+
+@container (min-width: 300px) {
+  .listing-card-body {
+    padding: 1rem;
+  }
+
+  .listing-card-meta {
+    font-size: 0.8125rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -119,17 +119,21 @@ export function ListingDetailClient({ id }: { id: string }) {
         {/* Galeri Foto (Maks. 5 Slot dengan dimensi tetap 0 CLS) */}
         <section className="space-y-4 lg:col-span-6" aria-label="Galeri foto listing">
           <div
-            className={`relative flex aspect-[4/3] w-full items-center justify-center rounded-3xl border-[3px] border-[#111827] p-6 shadow-[5px_5px_0px_#111827] ${product.cardBg}`}
+            className={`relative flex aspect-[4/3] w-full items-center justify-center rounded-2xl border-2 border-[#111827] p-6 ${product.cardBg}`}
           >
-            <span
-              className={`absolute top-4 left-4 rounded-md border-2 border-[#111827] px-3 py-1 text-xs font-extrabold ${
-                product.badgeTone === "green"
-                  ? "bg-[#15803D] text-white"
-                  : "bg-[#FACC15] text-[#111827]"
-              }`}
-            >
-              {product.badge}
-            </span>
+            {(product.isUmkm || product.price === 0 || isSoldOut) && (
+              <span
+                className={`absolute top-4 left-4 rounded-md border border-[#111827] px-2.5 py-1 text-xs font-extrabold ${
+                  isSoldOut
+                    ? "bg-[#FEF2F2] text-[#991B1B]"
+                    : product.badgeTone === "green"
+                      ? "bg-[#15803D] text-white"
+                      : "bg-[#FACC15] text-[#111827]"
+                }`}
+              >
+                {isSoldOut ? "Habis" : product.badge}
+              </span>
+            )}
 
             {product.uploadedImages && product.uploadedImages[activeSlide] ? (
               <Image
@@ -138,7 +142,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                 alt={`${product.title} tampilan ${activeSlide + 1}`}
                 width={540}
                 height={405}
-                className="h-full w-full rounded-2xl object-contain"
+                className="h-full w-full rounded-xl object-contain"
               />
             ) : (
               <div className="flex flex-col items-center gap-3 text-center">
@@ -146,8 +150,8 @@ export function ListingDetailClient({ id }: { id: string }) {
                   type={product.illustration}
                   className="h-44 w-60"
                 />
-                <span className="rounded-lg border-2 border-[#111827] bg-white px-3 py-1 text-xs font-bold text-[#111827]">
-                  Slot Pratinjau {activeSlide + 1}/{totalSlots.length} •{" "}
+                <span className="rounded-lg border border-[#111827]/40 bg-white px-3 py-1 text-xs font-bold text-[#111827]">
+                  Slide {activeSlide + 1}/{totalSlots.length} •{" "}
                   {typeof totalSlots[activeSlide] === "string" &&
                   !totalSlots[activeSlide].startsWith("data:")
                     ? totalSlots[activeSlide]
@@ -164,9 +168,9 @@ export function ListingDetailClient({ id }: { id: string }) {
                 type="button"
                 onClick={() => setActiveSlide(idx)}
                 aria-pressed={activeSlide === idx}
-                className={`min-h-11 rounded-xl border-2 border-[#111827] px-3.5 text-xs font-extrabold ${
+                className={`min-h-11 rounded-xl border-2 border-[#111827] px-3.5 text-xs font-bold ${
                   activeSlide === idx
-                    ? "bg-[#15803D] text-white shadow-[2px_2px_0px_#111827]"
+                    ? "bg-[#15803D] text-white"
                     : "bg-white text-[#111827] hover:bg-[#F0FDF4]"
                 }`}
               >
@@ -175,8 +179,8 @@ export function ListingDetailClient({ id }: { id: string }) {
             ))}
           </div>
 
-          {/* Profil Publik Penjual + Ulasan (UI-05, FR-07, FR-24) */}
-          <div className="space-y-3 rounded-3xl border-[2.5px] border-[#111827] bg-[#F0FDF4] p-5 shadow-[4px_4px_0px_#111827]">
+          {/* Profil Publik Penjual + Ulasan */}
+          <div className="space-y-3 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#FACC15] text-sm font-extrabold text-[#111827]">
@@ -192,30 +196,29 @@ export function ListingDetailClient({ id }: { id: string }) {
                 </div>
               </div>
               {product.sellerVerified && (
-                <span className="rounded-lg border-2 border-[#111827] bg-[#15803D] px-2.5 py-1 text-xs font-extrabold text-white">
-                  Terverifikasi KTM
+                <span className="rounded-lg border border-[#15803D] bg-[#DCFCE7] px-2.5 py-1 text-xs font-extrabold text-[#14532D]">
+                  KTM Terverifikasi
                 </span>
               )}
             </div>
 
-            <p className="text-xs font-medium text-[#334155]">
-              Nomor WhatsApp penjual dirahasiakan sesuai UU PDP dan otomatis terbuka
-              di halaman Pesanan setelah penjual menyetujui jadwal COD (status{" "}
-              <strong>Dijadwalkan</strong>).
+            <p className="text-xs font-medium text-[#475569]">
+              Nomor WhatsApp penjual dirahasiakan dan baru terbuka setelah penjual
+              menyetujui jadwal COD.
             </p>
 
             {product.reviews && product.reviews.length > 0 && (
-              <div className="space-y-2 border-t-2 border-[#111827]/15 pt-3">
+              <div className="space-y-2 border-t border-[#111827]/15 pt-3">
                 <h2 className="text-xs font-extrabold text-[#111827]">
-                  Ulasan Transaksi Selesai ({product.reviews.length})
+                  Ulasan Pembeli ({product.reviews.length})
                 </h2>
                 {product.reviews.map((rev) => (
                   <div
                     key={rev.id}
-                    className="rounded-xl border border-[#111827]/30 bg-white p-3 text-xs"
+                    className="rounded-xl border border-[#111827]/20 bg-white p-3 text-xs"
                   >
                     <p className="font-extrabold text-[#15803D]">
-                      Nilai: {rev.rating}/5 • {rev.authorLabel}
+                      {rev.rating}/5 • {rev.authorLabel}
                     </p>
                     <p className="mt-1 font-medium text-[#111827]">{rev.comment}</p>
                   </div>
@@ -227,23 +230,21 @@ export function ListingDetailClient({ id }: { id: string }) {
 
         {/* Info Listing & Form Pesan COD Langsung */}
         <section className="space-y-5 lg:col-span-6">
-          <div className="space-y-3 rounded-3xl border-[3px] border-[#111827] bg-white p-6 shadow-[5px_5px_0px_#111827]">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="rounded-md border-2 border-[#111827] bg-[#FEF9C3] px-2.5 py-1 text-xs font-extrabold text-[#111827]">
-                Kondisi: {product.condition}
+          <div className="space-y-3 rounded-2xl border-2 border-[#111827] bg-white p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+              <span className="rounded-md border border-[#111827]/40 bg-[#FEF9C3] px-2.5 py-1 text-[#111827]">
+                {product.condition}
               </span>
               <span
-                className={`rounded-md border-2 px-2.5 py-1 text-xs font-extrabold ${
-                  isSoldOut
-                    ? "border-[#991B1B] bg-[#FEF2F2] text-[#991B1B]"
-                    : "border-[#111827] bg-[#DCFCE7] text-[#14532D]"
-                }`}
+                className={
+                  isSoldOut ? "font-extrabold text-[#991B1B]" : "font-extrabold text-[#14532D]"
+                }
               >
                 {product.alwaysAvailable
-                  ? "Stok: Selalu Tersedia"
+                  ? "Stok selalu tersedia"
                   : isSoldOut
                     ? "Terjual (Stok 0)"
-                    : `Sisa Stok: ${product.stock}`}
+                    : `Sisa stok: ${product.stock}`}
               </span>
             </div>
 
@@ -253,8 +254,8 @@ export function ListingDetailClient({ id }: { id: string }) {
 
             <p className="text-2xl font-extrabold text-[#15803D]">
               {product.priceLabel}{" "}
-              <span className="text-xs font-bold text-[#334155]">
-                • COD Tunai 0% Biaya Platform
+              <span className="text-xs font-bold text-[#475569]">
+                • COD Tunai 0% Biaya Admin
               </span>
             </p>
 
@@ -273,7 +274,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                     : "bg-white text-[#111827] hover:bg-[#F0FDF4]"
                 }`}
               >
-                {isSaved ? "Tersimpan di Favorit" : "Simpan Listing"}
+                {isSaved ? "Tersimpan" : "Simpan Listing"}
               </button>
               <button
                 type="button"
@@ -283,15 +284,15 @@ export function ListingDetailClient({ id }: { id: string }) {
                   setReportSent(false);
                   setReportOpen(true);
                 }}
-                className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#991B1B] bg-[#FEF2F2] px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEE2E2]"
+                className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
               >
-                Laporkan Pelanggaran (FR-16)
+                Laporkan Listing
               </button>
             </div>
           </div>
 
           {/* Form Pesanan COD Langsung */}
-          <div className="rounded-3xl border-[3px] border-[#111827] bg-white p-6 shadow-[5px_5px_0px_#111827]">
+          <div className="rounded-2xl border-2 border-[#111827] bg-white p-6">
             <h2 className="text-lg font-extrabold text-[#111827]">
               Buat Pesanan &amp; Ajukan Spot COD
             </h2>
@@ -448,7 +449,7 @@ export function ListingDetailClient({ id }: { id: string }) {
         {reportSent ? (
           <div role="status" className="mt-4 space-y-3 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4">
             <p className="text-sm font-bold text-[#15803D]">
-              Laporan diterima untuk ditinjau administrator (FR-16 / FR-46).
+              Laporan diterima untuk ditinjau administrator.
             </p>
             <Link
               href="/admin"

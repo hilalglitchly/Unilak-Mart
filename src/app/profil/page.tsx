@@ -40,7 +40,7 @@ export default function ProfilPage() {
     }
     if (!pdpConsent) {
       setFormError(
-        "Persetujuan UU PDP wajib dicentang (FR-01): nomor WhatsApp dibagikan hanya saat status pesanan Dijadwalkan."
+        "Persetujuan UU PDP wajib dicentang: nomor WhatsApp dibagikan hanya saat status pesanan Dijadwalkan."
       );
       return;
     }
@@ -86,52 +86,55 @@ export default function ProfilPage() {
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <span className="inline-block rounded-md border-2 border-[#111827] bg-[#FACC15] px-2.5 py-0.5 text-xs font-extrabold text-[#111827]">
-            VERIFIKASI MAHASISWA &amp; PRIVASI UU PDP
-          </span>
-          <h1 className="mt-1.5 text-2xl font-extrabold text-[#111827] sm:text-3xl">
-            Profil Mahasiswa &amp; Status KTM
+          <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
+            Profil Mahasiswa &amp; Verifikasi KTM
           </h1>
+          <p className="mt-1 text-sm font-medium text-[#475569]">
+            Akun Terverifikasi dapat menjual, memesan, dan memberi ulasan di UnilakMart.
+          </p>
         </div>
 
         <Link
           href="/admin"
-          className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#111827] px-4 py-2 text-xs font-bold text-[#FACC15]"
+          className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
         >
-          Buka Panel Administrator R1
+          Panel Admin
         </Link>
       </div>
 
-      {/* 4 Status KTM FR-02 */}
+      {/* Ringkasan Status KTM */}
       <section
         aria-label="Status verifikasi KTM"
-        className="space-y-3 rounded-3xl border-[3px] border-[#111827] bg-[#F0FDF4] p-5 shadow-[4px_4px_0px_#111827]"
+        className="space-y-2.5 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4 sm:p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-extrabold text-[#111827]">
-            Status Akun Saat Ini: {profile.ktmStatus}
+          <h2 className="text-sm font-extrabold text-[#111827]">
+            Status Verifikasi KTM:{" "}
+            <span className="ml-1 inline-block rounded-md border border-[#111827] bg-white px-2.5 py-0.5 text-xs font-extrabold text-[#14532D]">
+              {profile.ktmStatus}
+            </span>
           </h2>
           {profile.deletedAt && (
             <span className="rounded-md border border-[#991B1B] bg-[#FEF2F2] px-2.5 py-0.5 text-xs font-bold text-[#991B1B]">
-              Akun Dianonimkan (FR-08)
+              Akun Dianonimkan
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <ol className="flex flex-wrap gap-2 text-xs font-bold">
           {KTM_STATUS_STEPS.map((st) => (
-            <div
+            <li
               key={st}
-              className={`rounded-xl border-2 px-3 py-2 text-xs font-extrabold ${
+              className={`rounded-lg px-2.5 py-1 ${
                 profile.ktmStatus === st
-                  ? "border-[#111827] bg-[#15803D] text-white"
-                  : "border-[#111827]/25 bg-white text-[#334155]"
+                  ? "bg-[#15803D] text-white"
+                  : "bg-white/80 text-[#475569]"
               }`}
             >
               {st}
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
 
         {profile.ktmReason && (
           <p className="rounded-xl border border-[#991B1B] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]">
@@ -140,20 +143,20 @@ export default function ProfilPage() {
           </p>
         )}
 
-        <p className="text-xs font-medium text-[#334155]">
-          Foto KTM disimpan di bucket privat <code>ktm-documents</code> dan langsung
-          dihapus otomatis segera setelah verifikasi disetujui (NFR-07).
+        <p className="text-xs font-medium text-[#475569]">
+          Foto KTM disimpan di bucket privat dan langsung dihapus otomatis setelah
+          verifikasi disetujui.
         </p>
       </section>
 
       {/* Form Pendaftaran / Pengajuan Verifikasi KTM */}
       <form
         onSubmit={handleSubmitKtm}
-        className="space-y-4 rounded-3xl border-[3px] border-[#111827] bg-white p-6 shadow-[5px_5px_0px_#111827]"
+        className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5 sm:p-6"
         noValidate
       >
         <h2 className="text-lg font-extrabold text-[#111827]">
-          Data Identitas &amp; Unggah Foto KTM Unilak
+          Data Identitas &amp; Unggah Foto KTM
         </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -239,7 +242,7 @@ export default function ProfilPage() {
               htmlFor="profil-email"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Email Aktif (Verifikasi Wajib FR-01)
+              Email Aktif
             </label>
             <input
               id="profil-email"
@@ -334,7 +337,7 @@ export default function ProfilPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-between gap-3 pt-2">
+        <div className="flex flex-wrap justify-between gap-3 border-t border-[#111827]/15 pt-4">
           <button
             type="button"
             onClick={() => {
@@ -342,9 +345,9 @@ export default function ProfilPage() {
               setDeleteSuccess(false);
               setDeleteModalOpen(true);
             }}
-            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#991B1B] bg-[#FEF2F2] px-4 py-2 text-xs font-bold text-[#991B1B]"
+            className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
           >
-            Hapus Akun Mandiri (FR-08)
+            Hapus Akun Mandiri
           </button>
 
           <div className="flex flex-wrap gap-2">
@@ -357,7 +360,7 @@ export default function ProfilPage() {
             </button>
             <button
               type="submit"
-              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white shadow-[2px_2px_0px_#111827]"
+              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534]"
             >
               Ajukan Verifikasi KTM
             </button>
@@ -365,7 +368,7 @@ export default function ProfilPage() {
         </div>
       </form>
 
-      {/* Dialog Hapus Akun Mandiri FR-08 */}
+      {/* Dialog Hapus Akun Mandiri */}
       <ModalDialog
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -373,7 +376,7 @@ export default function ProfilPage() {
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="judul-hapus-akun" className="text-lg font-extrabold text-[#111827]">
-            Konfirmasi Hapus Akun Mandiri (FR-08)
+            Konfirmasi Hapus Akun Mandiri
           </h2>
           <button
             type="button"

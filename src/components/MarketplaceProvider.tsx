@@ -403,7 +403,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       return {
         ok: false,
         error:
-          "Hapus akun ditahan sementara karena Anda masih memiliki pesanan aktif (Menunggu, Dijadwalkan, atau Sudah Diserahkan). Selesaikan atau batalkan terlebih dahulu sesuai FR-08.",
+          "Hapus akun ditahan sementara karena Anda masih memiliki pesanan aktif (Menunggu, Dijadwalkan, atau Sudah Diserahkan). Selesaikan atau batalkan terlebih dahulu.",
       };
     }
 
@@ -432,7 +432,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
               ...q,
               status: "Terverifikasi",
               photoDeletedNote:
-                "Foto KTM dihapus otomatis dari bucket privat (FR-03).",
+                "Foto KTM dihapus otomatis dari bucket privat.",
             }
           : q
       )
@@ -497,7 +497,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     ]);
     pushNotification(
       "Laporan Terkirim ke Admin",
-      `Laporan mengenai "${input.targetTitle}" tercatat untuk post-moderasi (FR-46).`,
+      `Laporan mengenai "${input.targetTitle}" tercatat untuk ditinjau administrator.`,
       "/admin"
     );
   };

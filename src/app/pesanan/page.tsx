@@ -51,7 +51,7 @@ export default function PesananPage() {
     e.preventDefault();
     if (!cancelTarget) return;
     if (!cancelReason.trim()) {
-      setCancelError("Alasan pembatalan wajib diisi sebelum membatalkan (FR-23).");
+      setCancelError("Alasan pembatalan wajib diisi sebelum membatalkan pesanan.");
       return;
     }
     updateOrderStatus(cancelTarget.id, "Dibatalkan", cancelReason.trim());
@@ -75,32 +75,29 @@ export default function PesananPage() {
       className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:py-8"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1.5">
-          <span className="inline-block rounded-md border-2 border-[#111827] bg-[#DCFCE7] px-2.5 py-0.5 text-xs font-extrabold text-[#14532D]">
-            PELACAKAN 6 STATUS COD &amp; PRIVASI WA
-          </span>
+        <div className="space-y-1">
           <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
             Daftar Pesanan COD Kampus
           </h1>
-          <p className="text-sm font-medium text-[#334155]">
-            Tombol <strong>Hubungi via WhatsApp</strong> baru terbuka saat pesanan
-            berstatus <strong>Dijadwalkan</strong> sesuai aturan privasi UU PDP R1.
+          <p className="text-sm font-medium text-[#475569]">
+            Tombol <strong>Hubungi via WhatsApp</strong> terbuka otomatis setelah jadwal
+            COD disetujui penjual (status <strong>Dijadwalkan</strong>).
           </p>
         </div>
 
         <div
           role="tablist"
           aria-label="Sudut pandang pratinjau pesanan"
-          className="inline-flex rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-1"
+          className="inline-flex rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-1"
         >
           <button
             type="button"
             role="tab"
             aria-selected={roleView === "pembeli"}
             onClick={() => setRoleView("pembeli")}
-            className={`min-h-11 rounded-xl px-4 text-xs font-extrabold ${
+            className={`min-h-11 rounded-lg px-4 text-xs font-extrabold ${
               roleView === "pembeli"
-                ? "border-2 border-[#111827] bg-[#15803D] text-white"
+                ? "bg-[#15803D] text-white"
                 : "text-[#111827]"
             }`}
           >
@@ -111,9 +108,9 @@ export default function PesananPage() {
             role="tab"
             aria-selected={roleView === "penjual"}
             onClick={() => setRoleView("penjual")}
-            className={`min-h-11 rounded-xl px-4 text-xs font-extrabold ${
+            className={`min-h-11 rounded-lg px-4 text-xs font-extrabold ${
               roleView === "penjual"
-                ? "border-2 border-[#111827] bg-[#FACC15] text-[#111827]"
+                ? "bg-[#FACC15] text-[#111827]"
                 : "text-[#111827]"
             }`}
           >
@@ -123,7 +120,7 @@ export default function PesananPage() {
       </div>
 
       {orders.length === 0 ? (
-        <div className="rounded-3xl border-[3px] border-[#111827] bg-[#F0FDF4] p-8 text-center shadow-[4px_4px_0px_#111827]">
+        <div className="rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-8 text-center">
           <h2 className="text-lg font-extrabold text-[#111827]">
             Belum ada pesanan COD
           </h2>
@@ -138,7 +135,7 @@ export default function PesananPage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-5">
+        <ul className="space-y-4">
           {orders.map((order) => {
             const waUnlocked =
               order.status === "Dijadwalkan" ||
@@ -151,36 +148,35 @@ export default function PesananPage() {
             return (
               <li
                 key={order.id}
-                className="space-y-4 rounded-3xl border-[3px] border-[#111827] bg-white p-5 shadow-[5px_5px_0px_#111827]"
+                className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border-2 border-[#111827] bg-[#F8FAFC] px-2.5 py-0.5 text-xs font-extrabold">
-                        Kode: {order.code}
+                      <span className="text-xs font-extrabold text-[#475569]">
+                        #{order.code}
                       </span>
                       <span
-                        className={`rounded-md border-2 border-[#111827] px-2.5 py-0.5 text-xs font-extrabold ${getStatusBadgeClass(order.status)}`}
+                        className={`rounded-md border border-[#111827] px-2.5 py-0.5 text-xs font-extrabold ${getStatusBadgeClass(order.status)}`}
                       >
-                        Status: {order.status}
+                        {order.status}
                       </span>
                     </div>
-                    <h2 className="mt-2 text-lg font-extrabold text-[#111827]">
+                    <h2 className="mt-1.5 text-lg font-extrabold text-[#111827]">
                       <Link href={`/listing/${order.productId}`} className="hover:underline">
                         {order.productTitle}
                       </Link>
                     </h2>
-                    <p className="text-xs font-semibold text-[#334155]">
-                      {order.quantity}x • Total Bayar Tunai:{" "}
+                    <p className="text-xs font-semibold text-[#475569]">
+                      {order.quantity}x • Total Tunai:{" "}
                       <strong className="text-[#15803D]">
                         {formatRupiah(order.unitPrice * order.quantity)}
                       </strong>{" "}
-                      • Lawan transaksi:{" "}
-                      {roleView === "pembeli" ? order.sellerLabel : order.buyerLabel}
+                      • {roleView === "pembeli" ? order.sellerLabel : order.buyerLabel}
                     </p>
                   </div>
 
-                  {/* Aksi Kontak WhatsApp Sesuai UU PDP (FR-20) */}
+                  {/* Aksi Kontak WhatsApp Sesuai UU PDP */}
                   <div>
                     {waUnlocked ? (
                       <a
@@ -191,60 +187,56 @@ export default function PesananPage() {
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white shadow-[2px_2px_0px_#111827] hover:bg-[#166534]"
+                        className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white hover:bg-[#166534]"
                       >
-                        Hubungi via WhatsApp (Terbuka)
+                        Hubungi via WhatsApp
                       </a>
                     ) : (
-                      <span className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827]/40 bg-[#F8FAFC] px-3.5 py-2 text-xs font-bold text-[#334155]">
-                        WhatsApp terkunci sebelum status Dijadwalkan (UU PDP)
+                      <span className="inline-flex min-h-11 items-center rounded-xl border border-[#111827]/25 bg-[#F8FAFC] px-3.5 py-2 text-xs font-bold text-[#475569]">
+                        WhatsApp terkunci sebelum status Dijadwalkan
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Info Spot & Jadwal */}
-                <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-3.5 text-xs sm:grid-cols-3">
+                {/* Info Spot & Jadwal ringkas */}
+                <div className="grid grid-cols-1 gap-2 rounded-xl border border-[#111827]/20 bg-[#F8FAFC] p-3 text-xs sm:grid-cols-3">
                   <div>
-                    <span className="block font-extrabold text-[#14532D]">Spot COD</span>
-                    <span className="font-semibold text-[#111827]">{order.codSpot}</span>
+                    <span className="font-bold text-[#475569]">Spot COD: </span>
+                    <span className="font-bold text-[#111827]">{order.codSpot}</span>
                   </div>
                   <div>
-                    <span className="block font-extrabold text-[#14532D]">
-                      Usulan Waktu Temu
-                    </span>
-                    <span className="font-semibold text-[#111827]">
-                      {order.proposedTime}
-                    </span>
+                    <span className="font-bold text-[#475569]">Jadwal: </span>
+                    <span className="font-bold text-[#111827]">{order.proposedTime}</span>
                   </div>
                   <div>
-                    <span className="block font-extrabold text-[#14532D]">Catatan</span>
-                    <span className="font-semibold text-[#111827]">
-                      {order.note || "Tidak ada catatan tambahan."}
+                    <span className="font-bold text-[#475569]">Catatan: </span>
+                    <span className="font-medium text-[#111827]">
+                      {order.note || "-"}
                     </span>
                   </div>
                 </div>
 
                 {order.cancelReason && (
                   <p className="rounded-xl border border-[#991B1B] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#991B1B]">
-                    Alasan Pembatalan: {order.cancelReason} (Kuota stok dikembalikan)
+                    Dibatalkan: {order.cancelReason} (stok dikembalikan)
                   </p>
                 )}
 
-                {/* Linimasa Visual Status Utama (4 Tahap + Cabang Batal/Kedaluwarsa) */}
+                {/* Stepper Status Ringkas */}
                 <ol
                   aria-label="Linimasa status pesanan"
-                  className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                  className="flex flex-wrap items-center gap-2 text-xs font-bold"
                 >
                   {TIMELINE_STEPS.map((step, idx) => {
                     const reached = currentStepIdx >= idx;
                     return (
                       <li
                         key={step}
-                        className={`rounded-xl border-2 px-3 py-2 text-xs font-extrabold ${
+                        className={`rounded-lg px-2.5 py-1 ${
                           reached
-                            ? "border-[#111827] bg-[#DCFCE7] text-[#14532D]"
-                            : "border-[#111827]/25 bg-white text-[#475569]"
+                            ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#15803D]"
+                            : "bg-[#F8FAFC] text-[#64748B]"
                         }`}
                       >
                         {idx + 1}. {step}
@@ -253,8 +245,8 @@ export default function PesananPage() {
                   })}
                 </ol>
 
-                {/* Tombol Aksi Sesuai Peran & Status (FR-18 s.d. FR-24) */}
-                <div className="flex flex-wrap gap-2 border-t-2 border-[#111827]/10 pt-3">
+                {/* Tombol Aksi Sesuai Peran & Status */}
+                <div className="flex flex-wrap gap-2 border-t border-[#111827]/15 pt-3">
                   {roleView === "penjual" && order.status === "Menunggu" && (
                     <>
                       <button
@@ -262,14 +254,14 @@ export default function PesananPage() {
                         onClick={() => updateOrderStatus(order.id, "Dijadwalkan")}
                         className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
                       >
-                        Setujui Jadwal COD (Buka WhatsApp)
+                        Setujui Jadwal COD
                       </button>
                       <button
                         type="button"
                         onClick={() => updateOrderStatus(order.id, "Kedaluwarsa")}
                         className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-2 text-xs font-bold text-[#111827]"
                       >
-                        Simulasi Kedaluwarsa 24 Jam
+                        Tandai Kedaluwarsa
                       </button>
                     </>
                   )}
@@ -292,7 +284,7 @@ export default function PesananPage() {
                         onClick={() => updateOrderStatus(order.id, "Selesai")}
                         className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
                       >
-                        Konfirmasi Barang Diterima (Selesai)
+                        Konfirmasi Barang Diterima
                       </button>
                     )}
 
@@ -302,13 +294,13 @@ export default function PesananPage() {
                       onClick={() => setReviewTarget(order)}
                       className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827]"
                     >
-                      Beri Ulasan &amp; Bintang (FR-24)
+                      Beri Ulasan
                     </button>
                   )}
 
                   {order.ratingSubmitted && (
-                    <span className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#15803D] bg-[#F0FDF4] px-3 py-1.5 text-xs font-extrabold text-[#14532D]">
-                      Ulasan terkirim: {order.ratingSubmitted}/5
+                    <span className="inline-flex min-h-11 items-center rounded-xl border border-[#15803D] bg-[#F0FDF4] px-3 py-1.5 text-xs font-extrabold text-[#14532D]">
+                      Ulasan: {order.ratingSubmitted}/5
                     </span>
                   )}
 
@@ -320,9 +312,9 @@ export default function PesananPage() {
                         setCancelReason("");
                         setCancelError("");
                       }}
-                      className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#991B1B] bg-[#FEF2F2] px-3.5 py-2 text-xs font-bold text-[#991B1B]"
+                      className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-3.5 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
                     >
-                      Batalkan dengan Alasan (FR-23)
+                      Batalkan Pesanan
                     </button>
                   )}
 
@@ -336,9 +328,9 @@ export default function PesananPage() {
                         reason: "Laporan kendala COD / no-show dari halaman Pesanan.",
                       })
                     }
-                    className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-2 text-xs font-bold text-[#111827]"
+                    className="inline-flex min-h-11 items-center rounded-xl border border-[#111827]/35 bg-white px-3.5 py-2 text-xs font-bold text-[#334155] hover:bg-[#F8FAFC]"
                   >
-                    Laporkan No-Show (FR-16)
+                    Laporkan Kendala
                   </button>
                 </div>
               </li>

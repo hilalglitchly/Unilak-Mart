@@ -12,44 +12,41 @@ function DesktopNavLinks({ activeOrdersCount }: { activeOrdersCount: number }) {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav aria-label="Navigasi utama" className="hidden items-center gap-1 md:flex">
+    <nav aria-label="Navigasi utama" className="hidden items-center gap-1.5 md:flex">
       <Link
         href="/"
-        className={`inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold transition-colors ${
+        aria-current={isActivePath("/") ? "page" : undefined}
+        className={`inline-flex min-h-11 items-center rounded-xl px-3.5 text-sm font-bold transition-colors ${
           isActivePath("/")
-            ? "bg-[#DCFCE7] text-[#14532D] font-extrabold"
+            ? "bg-[#DCFCE7] text-[#14532D] underline decoration-2 underline-offset-4"
             : "text-[#111827] hover:bg-[#F0FDF4]"
         }`}
       >
         Beranda
       </Link>
       <Link
-        href="/#katalog"
-        className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-[#F0FDF4]"
-      >
-        Cari
-      </Link>
-      <Link
         href="/jual"
-        className={`inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] px-3.5 text-xs font-extrabold transition-transform active:translate-x-[1px] active:translate-y-[1px] sm:text-sm ${
+        aria-current={isActivePath("/jual") ? "page" : undefined}
+        className={`inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] px-4 text-sm font-extrabold transition-transform active:translate-x-[1px] active:translate-y-[1px] ${
           isActivePath("/jual")
             ? "bg-[#15803D] text-white"
-            : "bg-[#FACC15] text-[#111827] shadow-[2px_2px_0px_#111827] hover:bg-[#FDE047]"
+            : "bg-[#FACC15] text-[#111827] hover:bg-[#FDE047]"
         }`}
       >
         + Jual
       </Link>
       <Link
         href="/pesanan"
-        className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold ${
+        aria-current={isActivePath("/pesanan") ? "page" : undefined}
+        className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold transition-colors ${
           isActivePath("/pesanan")
-            ? "bg-[#DCFCE7] text-[#14532D] font-extrabold"
+            ? "bg-[#DCFCE7] text-[#14532D] underline decoration-2 underline-offset-4"
             : "text-[#111827] hover:bg-[#F0FDF4]"
         }`}
       >
         <span>Pesanan</span>
         {activeOrdersCount > 0 && (
-          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-[#111827] bg-[#FACC15] px-1 text-[11px] font-extrabold text-[#111827]">
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FACC15] px-1.5 text-[11px] font-extrabold text-[#111827] ring-1 ring-[#111827]">
             {activeOrdersCount}
           </span>
         )}
@@ -66,15 +63,16 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
   return (
     <nav
       aria-label="Navigasi bawah mobile"
-      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#111827] bg-white px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-[0_-3px_0_#111827] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#111827] bg-white px-2 pt-1 pb-[max(0.45rem,env(safe-area-inset-bottom,0px))] md:hidden"
     >
       <ul className="mx-auto grid max-w-md grid-cols-5 gap-1">
         <li>
           <Link
             href="/"
-            className={`flex min-h-12 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
+            aria-current={pathname === "/" ? "page" : undefined}
+            className={`flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
               pathname === "/"
-                ? "border-2 border-[#111827] bg-[#DCFCE7] text-[#14532D]"
+                ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
             }`}
           >
@@ -95,7 +93,12 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/#katalog"
-            className="flex min-h-12 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold text-[#111827] hover:bg-[#F0FDF4]"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.location.pathname === "/") {
+                document.getElementById("cari-produk")?.focus();
+              }
+            }}
+            className="flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold text-[#111827] hover:bg-[#F0FDF4]"
           >
             <svg
               viewBox="0 0 20 20"
@@ -115,7 +118,8 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/jual"
-            className={`flex min-h-12 flex-col items-center justify-center rounded-xl border-2 border-[#111827] px-1 text-[11px] font-extrabold ${
+            aria-current={isActivePath("/jual") ? "page" : undefined}
+            className={`flex min-h-11 flex-col items-center justify-center rounded-xl border-2 border-[#111827] px-1 text-[11px] font-extrabold ${
               isActivePath("/jual")
                 ? "bg-[#15803D] text-white"
                 : "bg-[#FACC15] text-[#111827]"
@@ -138,9 +142,10 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/pesanan"
-            className={`relative flex min-h-12 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
+            aria-current={isActivePath("/pesanan") ? "page" : undefined}
+            className={`relative flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
               isActivePath("/pesanan")
-                ? "border-2 border-[#111827] bg-[#DCFCE7] text-[#14532D]"
+                ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
             }`}
           >
@@ -157,7 +162,7 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
             </svg>
             <span>Pesanan</span>
             {activeOrdersCount > 0 && (
-              <span className="absolute top-1 right-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-[#111827] bg-[#FACC15] px-1 text-[10px] font-extrabold text-[#111827]">
+              <span className="absolute top-0.5 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FACC15] px-1 text-[10px] font-extrabold text-[#111827] ring-1 ring-[#111827]">
                 {activeOrdersCount}
               </span>
             )}
@@ -167,9 +172,10 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/profil"
-            className={`flex min-h-12 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
+            aria-current={isActivePath("/profil") || isActivePath("/admin") ? "page" : undefined}
+            className={`flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
               isActivePath("/profil") || isActivePath("/admin")
-                ? "border-2 border-[#111827] bg-[#DCFCE7] text-[#14532D]"
+                ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
             }`}
           >
@@ -236,19 +242,18 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         Lewati ke konten utama
       </a>
 
-      {/* Header Responsif Desktop + Mobile */}
+      {/* Header satu baris bersih di desktop, ringkas di mobile */}
       <header className="border-b-2 border-[#111827] bg-white lg:sticky lg:top-0 lg:z-40">
-        <div className="mx-auto max-w-[1440px] px-4 py-3 sm:px-6 lg:px-10">
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-            {/* Brand Logo */}
+        <div className="mx-auto max-w-[1440px] px-4 py-2.5 sm:px-6 lg:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl py-1 sm:gap-3 sm:px-1"
+              className="inline-flex min-h-11 items-center gap-2.5 rounded-xl py-0.5 pr-1"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-[2.5px] border-[#111827] bg-[#15803D] text-lg font-extrabold text-[#FACC15] shadow-[2px_2px_0px_#111827] sm:h-11 sm:w-11 sm:text-xl">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] text-base font-extrabold text-[#FACC15] sm:h-10 sm:w-10 sm:text-lg">
                 U
               </span>
-              <span className="text-sm font-extrabold tracking-tight text-[#111827] sm:text-xl lg:text-2xl">
+              <span className="text-base font-extrabold tracking-tight text-[#111827] sm:text-xl">
                 unilakmart.id
               </span>
             </Link>
@@ -259,14 +264,14 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 <label htmlFor="cari-produk" className="sr-only">
                   Cari buku kuliah, jajanan UMKM, atau perlengkapan kos di Unilak
                 </label>
-                <div className="flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3 py-1 shadow-[2px_2px_0px_#111827] focus-within:bg-white">
+                <div className="flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3 py-1 transition-colors focus-within:bg-white">
                   <input
                     id="cari-produk"
                     name="q"
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari buku kuliah, UMKM, kos di Unilak..."
+                    placeholder="Cari buku, barang kos, atau UMKM..."
                     autoCorrect="off"
                     spellCheck={false}
                     enterKeyHint="search"
@@ -285,7 +290,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   <button
                     type="submit"
                     aria-label="Cari produk di katalog"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#111827] bg-[#FACC15] text-[#111827] hover:bg-[#FDE047] active:translate-x-[1px] active:translate-y-[1px]"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FACC15] text-[#111827] ring-1 ring-[#111827] hover:bg-[#FDE047] active:translate-x-[1px] active:translate-y-[1px]"
                   >
                     <svg
                       viewBox="0 0 20 20"
@@ -303,21 +308,18 @@ export function SiteChrome({ children }: { children: ReactNode }) {
               </form>
             </search>
 
-            {/* Navigasi 5 Menu + Lonceng Notifikasi */}
-            <div className="order-2 flex items-center gap-1.5 sm:gap-2 lg:order-3">
+            {/* Navigasi Utama + Lonceng Notifikasi + Akun */}
+            <div className="order-2 flex items-center gap-2 lg:order-3">
               <Suspense
                 fallback={
-                  <div className="hidden items-center gap-1 md:flex">
-                    <span className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-[#111827]">
+                  <div className="hidden items-center gap-1.5 md:flex">
+                    <span className="inline-flex min-h-11 items-center px-3.5 text-sm font-bold text-[#111827]">
                       Beranda
                     </span>
-                    <span className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-[#111827]">
-                      Cari
-                    </span>
-                    <span className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-3.5 text-sm font-extrabold text-[#111827]">
+                    <span className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 text-sm font-extrabold text-[#111827]">
                       + Jual
                     </span>
-                    <span className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-[#111827]">
+                    <span className="inline-flex min-h-11 items-center px-3.5 text-sm font-bold text-[#111827]">
                       Pesanan
                     </span>
                   </div>
@@ -326,7 +328,6 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 <DesktopNavLinks activeOrdersCount={activeOrdersCount} />
               </Suspense>
 
-              {/* Ikon Lonceng Notifikasi (FR-25) */}
               <button
                 type="button"
                 onClick={() => setNotifOpen(true)}
@@ -349,57 +350,38 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   <path d="M8.5 16.5a1.5 1.5 0 0 0 3 0" />
                 </svg>
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-1 text-[10px] font-extrabold text-[#111827]">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FACC15] px-1 text-[10px] font-extrabold text-[#111827] ring-2 ring-[#111827]">
                     {unreadCount}
                   </span>
                 )}
               </button>
 
-              {/* Tombol Profil / Masuk KTM */}
+              {/* Profil pada desktop/tablet (di mobile sudah ada pada navigasi bawah) */}
               <Link
                 href="/profil"
-                className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full border-2 border-[#111827] bg-[#15803D] px-3 py-2 text-xs font-bold text-white shadow-[2px_2px_0px_#111827] hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] sm:px-4 sm:text-sm"
+                className="hidden min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-sm font-bold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] md:inline-flex"
               >
-                <span className="sm:hidden">Profil</span>
-                <span className="hidden sm:inline">
-                  {profile.ktmStatus === "Terverifikasi" ? "Profil KTM" : "Masuk KTM"}
-                </span>
+                {profile.ktmStatus === "Terverifikasi" ? "Profil KTM" : "Masuk KTM"}
               </Link>
 
-              {/* Tombol Menu Sekunder Mobile */}
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
                 aria-expanded={mobileMenuOpen}
                 aria-controls="menu-mobile"
-                className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-2.5 py-2 text-xs font-bold text-[#111827] md:hidden"
+                className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4] md:hidden"
               >
                 Menu
               </button>
             </div>
           </div>
 
-          {/* Drawer Sekunder Mobile */}
           {mobileMenuOpen && (
             <nav
               id="menu-mobile"
               aria-label="Menu sekunder mobile"
-              className="mt-3 flex flex-col gap-1 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-3 md:hidden"
+              className="mt-2.5 flex flex-col gap-1 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-2.5 md:hidden"
             >
-              <Link
-                href="/#kategori"
-                onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-[#111827] hover:bg-white"
-              >
-                Jelajahi Kategori Kampus
-              </Link>
-              <Link
-                href="/#titik-cod"
-                onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-[#111827] hover:bg-white"
-              >
-                Daftar Titik COD Kampus
-              </Link>
               <button
                 type="button"
                 onClick={() => {
@@ -414,33 +396,38 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   }
                 }}
                 aria-pressed={onlySaved}
-                className="inline-flex min-h-11 items-center rounded-lg px-3 text-left font-semibold text-[#111827] hover:bg-white"
+                className="inline-flex min-h-11 items-center rounded-lg px-3 text-left text-sm font-semibold text-[#111827] hover:bg-white"
               >
                 {onlySaved
                   ? "Tampilkan semua listing"
                   : `Listing Disimpan (${savedIds.length})`}
               </button>
               <Link
+                href="/#titik-cod"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-white"
+              >
+                Titik COD Kampus
+              </Link>
+              <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-[#15803D] hover:bg-white"
+                className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#15803D] hover:bg-white"
               >
-                Panel Administrator R1
+                Panel Administrator
               </Link>
             </nav>
           )}
         </div>
       </header>
 
-      {/* Konten Utama (padding bawah pada mobile agar tidak tertutup Bottom Nav) */}
       <div className="flex-1 pb-24 md:pb-0">{children}</div>
 
-      {/* Footer R1 */}
-      <footer className="border-t-2 border-[#111827] bg-[#F0FDF4] pb-24 md:pb-0">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-4 px-4 py-6 text-xs font-semibold text-[#334155] sm:flex-row sm:items-center sm:px-6 lg:px-10">
+      <footer className="border-t-2 border-[#111827] bg-[#F8FAFC] pb-24 md:pb-0">
+        <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-3 px-4 py-5 text-xs font-semibold text-[#334155] sm:flex-row sm:items-center sm:px-6 lg:px-10">
           <p>
-            UnilakMart Rilis 1 MVP • Pasar Kampus &amp; Etalase UMKM Mahasiswa Universitas
-            Lancang Kuning.
+            UnilakMart • Pasar Kampus &amp; Etalase UMKM Mahasiswa Universitas Lancang
+            Kuning (Pratinjau R1).
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
@@ -465,18 +452,16 @@ export function SiteChrome({ children }: { children: ReactNode }) {
               href="/admin"
               className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
             >
-              Admin R1
+              Admin
             </Link>
           </div>
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation Bar 5 Menu Konsisten (UI-02) */}
       <Suspense fallback={null}>
         <MobileBottomNav activeOrdersCount={activeOrdersCount} />
       </Suspense>
 
-      {/* Dialog Notifikasi In-App (FR-25) */}
       <ModalDialog
         open={notifOpen}
         onClose={() => setNotifOpen(false)}
@@ -485,15 +470,12 @@ export function SiteChrome({ children }: { children: ReactNode }) {
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="inline-block rounded-md border-2 border-[#111827] bg-[#FACC15] px-2.5 py-0.5 text-xs font-extrabold text-[#111827]">
-              Notifikasi In-App R1
-            </span>
-            <h2
-              id="judul-modal-notifikasi"
-              className="mt-2 text-lg font-extrabold text-[#111827]"
-            >
-              Kabar Pesanan &amp; Verifikasi
+            <h2 id="judul-modal-notifikasi" className="text-lg font-extrabold text-[#111827]">
+              Notifikasi Pesanan &amp; Akun
             </h2>
+            <p className="mt-0.5 text-xs font-semibold text-[#475569]">
+              {unreadCount} belum dibaca
+            </p>
           </div>
           <button
             type="button"
@@ -505,28 +487,23 @@ export function SiteChrome({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <span className="text-xs font-bold text-[#334155]">
-            {unreadCount} notifikasi belum dibaca
-          </span>
-          {unreadCount > 0 && (
+        {unreadCount > 0 && (
+          <div className="mt-3 flex justify-end">
             <button
               type="button"
               onClick={markAllNotificationsRead}
-              className="min-h-11 rounded-xl border-2 border-[#111827] bg-[#F0FDF4] px-3 py-1.5 text-xs font-bold text-[#14532D] hover:bg-[#DCFCE7]"
+              className="min-h-11 rounded-xl border border-[#111827]/35 bg-[#F0FDF4] px-3 py-1.5 text-xs font-bold text-[#14532D] hover:bg-[#DCFCE7]"
             >
               Tandai Semua Dibaca
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {notifications.length === 0 ? (
-          <div className="mt-4 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-5 text-center">
-            <p className="text-sm font-bold text-[#111827]">
-              Belum ada notifikasi baru
-            </p>
+          <div className="mt-4 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-5 text-center">
+            <p className="text-sm font-bold text-[#111827]">Belum ada notifikasi baru</p>
             <p className="mt-1 text-xs font-medium text-[#334155]">
-              Pembaruan status KTM, pesanan COD, dan laporan akan muncul di sini.
+              Kabar status KTM dan transaksi COD Anda akan muncul di sini.
             </p>
           </div>
         ) : (
@@ -538,19 +515,13 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   notif.read ? "bg-white" : "bg-[#FEF9C3]"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-extrabold text-[#111827]">
-                      {notif.title}
-                    </p>
-                    <p className="mt-1 text-xs font-medium leading-relaxed text-[#334155]">
-                      {notif.message}
-                    </p>
-                    <p className="mt-1.5 text-[11px] font-bold text-[#475569]">
-                      {notif.timestamp} • {!notif.read ? "Belum dibaca" : "Sudah dibaca"}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-sm font-extrabold text-[#111827]">{notif.title}</p>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-[#334155]">
+                  {notif.message}
+                </p>
+                <p className="mt-1.5 text-[11px] font-bold text-[#475569]">
+                  {notif.timestamp} • {notif.read ? "Sudah dibaca" : "Belum dibaca"}
+                </p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   <Link
                     href={notif.href}

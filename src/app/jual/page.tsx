@@ -54,7 +54,7 @@ export default function JualPage() {
 
     const remaining = Math.max(0, 5 - compressedImages.length);
     if (remaining === 0) {
-      setPhotoError("Maksimal 5 foto per listing (FR-09).");
+      setPhotoError("Maksimal 5 foto per listing.");
       return;
     }
 
@@ -108,7 +108,7 @@ export default function JualPage() {
     e.preventDefault();
     if (profile.ktmStatus !== "Terverifikasi") {
       setFormError(
-        "Akun harus berstatus Terverifikasi KTM untuk menayangkan listing (FR-04). Periksa status di halaman Profil."
+        "Akun harus berstatus Terverifikasi KTM untuk menayangkan listing. Periksa status di halaman Profil."
       );
       return;
     }
@@ -153,17 +153,13 @@ export default function JualPage() {
       id="konten-utama"
       className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 lg:py-8"
     >
-      <div className="space-y-2">
-        <span className="inline-block rounded-md border-2 border-[#111827] bg-[#FACC15] px-2.5 py-0.5 text-xs font-extrabold text-[#111827]">
-          FORM JUAL &lt; 1 MENIT (UI-04)
-        </span>
+      <div className="space-y-1.5">
         <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
-          Pasang Listing Barang atau Produk UMKM
+          Pasang Listing Barang atau UMKM
         </h1>
-        <p className="text-sm font-medium text-[#334155]">
-          Foto dikompres otomatis di browser sebelum diunggah untuk menghemat kuota.
-          Dilarang menjual rokok/vape, miras, barang ilegal, atau jasa joki tugas/skripsi
-          (FR-16).
+        <p className="text-sm font-medium text-[#475569]">
+          Foto otomatis dikompres di browser. Pastikan tidak menjual rokok/vape, miras,
+          atau jasa joki tugas kuliah.
         </p>
       </div>
 
@@ -184,10 +180,10 @@ export default function JualPage() {
       {createdListingId ? (
         <div
           role="status"
-          className="space-y-4 rounded-3xl border-[3px] border-[#111827] bg-[#F0FDF4] p-6 shadow-[5px_5px_0px_#111827]"
+          className="space-y-4 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-6"
         >
           <h2 className="text-xl font-extrabold text-[#15803D]">
-            Listing Berhasil Diterbitkan (Post-Moderasi R1)!
+            Listing Berhasil Diterbitkan
           </h2>
           <p className="text-sm font-medium text-[#111827]">
             Listing Anda langsung tampil di katalog beranda
@@ -224,7 +220,7 @@ export default function JualPage() {
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="space-y-5 rounded-3xl border-[3px] border-[#111827] bg-white p-5 shadow-[5px_5px_0px_#111827] sm:p-7"
+          className="space-y-5 rounded-2xl border-2 border-[#111827] bg-white p-5 sm:p-7"
           noValidate
         >
           {/* Upload Maks 5 Foto + Kompresi Browser */}
@@ -233,7 +229,7 @@ export default function JualPage() {
               htmlFor="upload-foto-listing"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Foto Barang / UMKM (Maks. 5 Foto, Kompresi Browser NFR-03)
+              Foto Barang / UMKM (Maks. 5 Foto)
             </label>
             <input
               id="upload-foto-listing"
@@ -313,7 +309,7 @@ export default function JualPage() {
                 htmlFor="kategori-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Kategori (FR-11)
+                Kategori
               </label>
               <select
                 id="kategori-listing"
@@ -334,7 +330,7 @@ export default function JualPage() {
                 htmlFor="fakultas-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Fakultas Terkait (FR-12)
+                Fakultas Terkait
               </label>
               <select
                 id="fakultas-listing"
@@ -355,7 +351,7 @@ export default function JualPage() {
                 htmlFor="kondisi-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Kondisi Barang (FR-09)
+                Kondisi Barang
               </label>
               <select
                 id="kondisi-listing"
@@ -440,7 +436,7 @@ export default function JualPage() {
               />
               <span>
                 Tampilkan di <strong>Etalase UMKM Gratis</strong> bagian atas beranda
-                (FR-15, khusus produk/jajanan/jasa UMKM mahasiswa)
+                (khusus produk, jajanan, atau jasa UMKM mahasiswa)
               </span>
             </label>
           </div>
