@@ -203,7 +203,7 @@ Bagian ini memuat kebutuhan per fungsi utama (`F1` sampai `F7`). Penandaan prior
 
 | Kode | Kebutuhan | Prioritas |
 | --- | --- | --- |
-| FR-01 | Sistem harus menyediakan pendaftaran akun khusus **Mahasiswa aktif Unilak** dengan NIM, nama lengkap, program studi, fakultas, email, nomor HP (WhatsApp), kata sandi, **verifikasi email wajib**, serta **persetujuan kebijakan privasi UU No. 27 Tahun 2022 yang secara eksplisit menyatakan bahwa nomor WhatsApp pengguna akan dibagikan kepada lawan transaksi setelah pesanan diterima (`Dijadwalkan`)**. *(Dukungan akun dosen, tendik, dan alumni baru ditunda ke Rilis 2.)* | Wajib |
+| FR-01 | Sistem harus menyediakan pendaftaran akun khusus **Mahasiswa aktif Unilak** dengan NIM, nama lengkap, program studi, fakultas, email, nomor HP (WhatsApp), kata sandi, **verifikasi email wajib**, serta **persetujuan kebijakan privasi UU No. 27 Tahun 2022 yang secara eksplisit menyatakan bahwa nomor WhatsApp pengguna akan dibagikan kepada lawan transaksi setelah pesanan diterima (`Dijadwalkan`)**. *(UI Rilis 1 khusus mahasiswa aktif, sementara skema basis data memakai identitas generik siap Rilis 2 untuk dosen/tendik via NIDN/NPK/@unilak.ac.id dan alumni baru <= 2 tahun lulus — lihat [DECISIONS.md](DECISIONS.md) Bagian 3.1.)* | Wajib |
 | FR-02 | Sistem harus meminta foto KTM Unilak (disimpan di bucket privat) untuk verifikasi identitas dan menampilkan status akun: `Belum Verifikasi`, `Menunggu`, `Terverifikasi`, atau `Ditolak`. | Wajib |
 | FR-03 | Administrator harus dapat menyetujui atau menolak verifikasi KTM secara manual dengan alasan, pengguna menerima notifikasi hasilnya (in-app & email), dan **foto KTM langsung dihapus otomatis segera setelah disetujui atau maksimal 7 hari setelah ditolak** (masa banding). | Wajib |
 | FR-04 | Katalog dan detail listing dapat diakses secara *read-only* oleh pengunjung tanpa login (tamu) maupun akun Belum Verifikasi/Menunggu/Ditolak. Hanya akun `Terverifikasi` yang dapat membuat listing, memesan, melaporkan pelanggaran, memberi ulasan, dan melihat kontak penjual setelah pesanan `Dijadwalkan`. | Wajib |
@@ -341,8 +341,8 @@ Daftar ini merupakan bahan awal untuk perancangan skema database PostgreSQL (Sup
 
 | Entitas | Atribut utama | Relasi utama |
 | --- | --- | --- |
-| Pengguna | NIM, nama, prodi, fakultas, email, `email_terverifikasi`, nomor HP (WhatsApp), `persetujuan_uu_pdp`, status verifikasi, peran, `is_umkm`, `deleted_at` (penanda anonimisasi hapus akun mandiri) | Memiliki banyak Listing, Pesanan, Ulasan, dan Notifikasi |
-| Verifikasi | Pengguna, path foto KTM (bucket privat; dihapus otomatis saat disetujui atau maks. 7 hari setelah ditolak), status, alasan penolakan, waktu proses | Milik satu Pengguna, diproses Administrator |
+| Pengguna | `civitas_role` (`mahasiswa` di R1; `dosen`/`tendik`/`alumni` di R2), `identifier_type` (`nim` di R1; `nidn`/`npk`/`nip` di R2), `identifier_number` unik (NIM di R1), `unit_or_prodi` (prodi/unit kerja), fakultas, `graduation_year` (opsional R2), nama, email, `email_terverifikasi`, `campus_email_verified`, nomor HP (WhatsApp), `persetujuan_uu_pdp`, status verifikasi, peran sistem, `is_umkm`, `deleted_at` (penanda anonimisasi hapus akun mandiri) | Memiliki banyak Listing, Pesanan, Ulasan, dan Notifikasi |
+| Verifikasi | Pengguna, `identifier_type`, path foto dokumen (`KTM` di R1; Kartu Pegawai/SK/SKL di R2) di bucket privat (dihapus otomatis saat disetujui atau maks. 7 hari setelah ditolak), status, alasan penolakan, waktu proses | Milik satu Pengguna, diproses Administrator |
 | Listing | Judul, deskripsi, `kondisi` (`Baru`/`Bekas Seperti Baru`/`Bekas Layak Pakai`), harga (`>= Rp0`), `stok` (atau flag `selalu_tersedia`), `is_umkm`, status (`Aktif`/`Nonaktif`/`Terjual`/`Disembunyikan`), kategori, fakultas, Spot COD yang didukung | Milik satu Pengguna, punya banyak Foto (maks. 5) dan terhubung ke banyak Spot COD |
 | Kategori dan Fakultas | Nama, jenis (`kategori` / `fakultas`), status aktif | Mengelompokkan Listing |
 | Spot COD | Nama, lokasi, jam layanan, status aktif | Dipakai oleh banyak Listing dan Pesanan |
@@ -375,8 +375,8 @@ Seluruh 8 pertanyaan terbuka pada draf v1.0 telah disepakati pada 9 November 202
 
 1. **Bagaimana verifikasi NIM dilakukan: manual oleh administrator atau terhubung ke basis data akademik Unilak?**
    **Terjawab:** Dilakukan **manual oleh Administrator** melalui foto KTM, disertai verifikasi email wajib saat pendaftaran.
-2. **Dengan identitas apa dosen dan tenaga kependidikan diverifikasi?**
-   **Terjawab:** Ditunda ke **Rilis 2**; Rilis 1 dikhususkan untuk **Mahasiswa aktif Unilak**.
+2. **Dengan identitas apa dosen, tenaga kependidikan, dan alumni diverifikasi?**
+   **Terjawab:** Rilis 1 tetap khusus **Mahasiswa aktif Unilak** (`NIM` + foto KTM), tetapi tabel `Pengguna` Supabase langsung disiapkan dengan atribut generik (`civitas_role`, `identifier_type`, `identifier_number`, `unit_or_prodi`, `graduation_year`). Pembukaan penuh pada **Rilis 2** memakai **NIDN/NPK/NIP** + *fast-track* email `@unilak.ac.id` atau Kartu Pegawai untuk dosen/tendik, serta **Alumni baru (`<= 2 tahun` pasca-lulus)** untuk jual-beli penuh (alumni `> 2 tahun` default pembeli/donatur `Rp0` di Spot COD kampus) sesuai [DECISIONS.md](DECISIONS.md) Bagian 3.1.
 3. **Penyedia pembayaran QRIS mana yang dipakai, dan apakah biayanya masih tertutup oleh admin fee 1% sampai 2%?**
    **Terjawab:** Ditunda ke **Rilis 2**; Rilis 1 berjalan murni dengan **COD tunai (0% biaya platform)**.
 4. **Apakah perlu fitur chat dalam aplikasi, atau notifikasi dan kontak lewat profil sudah cukup?**

@@ -2,8 +2,8 @@
 
 Dokumen ini mencatat seluruh keputusan final hasil wawancara penentuan lingkup **MVP Web UnilakMart (Rilis 1)** sebagai acuan bersama tim pengembang, penyelarasan [SRS.md](SRS.md), dan implementasi awal.
 
-- **Tanggal keputusan**: 9 November 2026
-- **Basis dokumen**: [SRS.md](SRS.md) v1.0 (semula `SRS UnilakMart (IEEE 830).md`)
+- **Tanggal keputusan**: 9 November 2026 (diperbarui 19 November 2026 — Opsi 1 skema sivitas siap Rilis 2)
+- **Basis dokumen**: [SRS.md](SRS.md) v1.1 (semula `SRS UnilakMart (IEEE 830).md`)
 - **Status**: Disepakati
 
 ---
@@ -58,6 +58,21 @@ Dokumen ini mencatat seluruh keputusan final hasil wawancara penentuan lingkup *
 5. **Persetujuan & Hak Hapus Akun (`NFR-10`)**:
    - Saat mendaftar, pengguna wajib menyetujui kebijakan privasi UU No. 27 Tahun 2022 yang **secara eksplisit menyebutkan bahwa nomor WhatsApp pengguna akan dibagikan kepada lawan transaksi setelah pesanan diterima (`Dijadwalkan`)**.
    - Pengguna dapat melakukan **hapus akun mandiri** dari pengaturan profil selama tidak memiliki pesanan aktif; data pribadi (nama, NIM, email, nomor HP) dianonimkan tanpa merusak integritas riwayat transaksi dan ulasan yang sudah selesai.
+
+### 3.1 Rancangan Ekspansi Sivitas & Persiapan Skema (Opsi 1 — Siap Rilis 2)
+
+UI dan alur pendaftaran **Rilis 1 tetap dibatasi khusus Mahasiswa aktif Unilak** untuk menjaga fokus pilot dan meringankan beban moderasi Admin. Namun, perancangan basis data Supabase sejak Rilis 1 **wajib menggunakan kolom identitas generik** agar pembukaan akses Dosen, Tendik, dan Alumni pada Rilis 2 tidak memerlukan migrasi ulang skema:
+
+1. **Skema `profiles` & Verifikasi Generik (Dipakai Sejak Rilis 1)**:
+   - Kolom `civitas_role` (`mahasiswa` | `dosen` | `tendik` | `alumni`, default R1 `'mahasiswa'`), `identifier_type` (`nim` | `nidn` | `npk` | `nip`, default R1 `'nim'`), `identifier_number` (`UNIQUE`, diisi **NIM** pada R1), `unit_or_prodi` (Prodi pada R1 atau Unit Kerja/Fakultas pada R2), `graduation_year` (opsional, khusus alumni), dan `campus_email_verified`.
+   - Mekanisme login (`FR-06`) memetakan `identifier_number` (`NIM` di R1; ditambah `NIDN`/`NPK`/`NIP` di R2) -> `email` di sisi server tanpa mengubah arsitektur auth.
+2. **Aturan Verifikasi Dosen & Staf / Tendik (Rilis 2)**:
+   - Nomor induk memakai **NIDN/NUPTK** (Dosen) atau **NPK/NIY/NIP** (Tenaga Kependidikan/Staf).
+   - **Jalur *Fast-Track***: pendaftaran memakai **email institusi resmi (`@unilak.ac.id`)** terverifikasi mengurangi beban pengecekan manual Admin; bila memakai email pribadi (honorer/staf lapangan), pendaftar mengunggah foto **Kartu Pegawai / SK Mengajar / profil SIAKAD** (tetap tunduk pada penghapusan otomatis `NFR-07`).
+   - Penambahan Spot COD area kerja (mis. Lobi Dekanat/Rektorat) serta aturan etika bahwa dosen dilarang mewajibkan pembelian listing pribadi sebagai syarat nilai atau absensi kuliah.
+3. **Aturan Batasan Alumni Berjenjang (Rilis 2)**:
+   - **Alumni Baru (`<= 2 tahun` sejak tahun lulus)**: akses **penuh (Beli + Jual)** memakai foto KTM terakhir atau SKL/Ijazah (nilai/IPK disarankan disensor demi UU PDP).
+   - **Alumni `> 2 tahun`**: default berperan sebagai **Pembeli & Pendonor (`Rp0`)** dengan syarat serah terima tetap di **Spot COD dalam area kampus**; akses berjualan komersial hanya dibuka lewat persetujuan khusus Admin sebagai *Mitra UMKM Alumni*.
 
 ---
 
@@ -117,7 +132,7 @@ Dokumen ini mencatat seluruh keputusan final hasil wawancara penentuan lingkup *
 | No. SRS | Pertanyaan Terbuka | Keputusan |
 | --- | --- | --- |
 | **#1** | Verifikasi NIM manual atau integrasi DB akademik? | Manual oleh Administrator lewat foto KTM + verifikasi email wajib. |
-| **#2** | Identitas verifikasi dosen dan tendik? | Ditunda ke Rilis 2; Rilis 1 khusus Mahasiswa aktif Unilak. |
+| **#2** | Identitas verifikasi dosen, tendik, & batas alumni? | Rilis 1 khusus Mahasiswa aktif (`NIM` + KTM), namun tabel Supabase memakai skema generik (`civitas_role`, `identifier_type`, `identifier_number`). Rilis 2 membuka **Dosen/Tendik** (`NIDN`/`NPK`/`NIP` + *fast-track* `@unilak.ac.id` atau Kartu Pegawai) dan **Alumni berjenjang** (`<= 2 tahun` pasca-lulus: akses penuh; `> 2 tahun`: pembeli/donatur Rp0 wajib COD area kampus). |
 | **#3** | Penyedia QRIS & kecukupan fee 1–2%? | Ditunda ke Rilis 2; Rilis 1 murni COD tunai tanpa biaya. |
 | **#4** | Perlu chat dalam aplikasi atau cukup kontak? | Tanpa chat in-app; pakai tombol WhatsApp setelah status `Dijadwalkan`. |
 | **#5** | Mobile Android saja atau juga iOS? | Rilis 1 fokus Web Responsif; Android utama & iOS opsional ditunda ke Rilis 2+. |
