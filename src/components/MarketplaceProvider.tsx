@@ -192,7 +192,6 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       }
 
       const uid = userRes.data.user?.id ?? null;
-      setAuthUserId(uid);
 
       if (uid) {
         const [profileRes, savedRes, notifRes] = await Promise.all([
@@ -230,6 +229,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         setNotifications(INITIAL_NOTIFICATIONS);
       }
 
+      setAuthUserId(uid);
       setSupabaseReady(true);
     } catch {
       // Tetap gunakan data pratinjau lokal jika jaringan Supabase gagal

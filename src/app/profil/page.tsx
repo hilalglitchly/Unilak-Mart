@@ -463,7 +463,7 @@ export default function ProfilPage() {
       </section>
 
       <ProfilIdentityForm
-        key={`${authUserId ?? "preview"}-${profile.nim}-${profile.email}-${profile.ktmStatus}`}
+        key={`${authUserId ?? "preview"}-${profile.email}-${profile.deletedAt ?? ""}`}
         profile={profile}
         authUserId={authUserId}
         onSaveProfile={updateProfile}
