@@ -54,6 +54,7 @@ export interface ProductReview {
 
 export interface ProductItem {
   id: string;
+  dbId?: number;
   title: string;
   description: string;
   price: number;

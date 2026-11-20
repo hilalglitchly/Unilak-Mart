@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
-import { FACULTIES, formatRupiah, type KtmStatus } from "@/lib/preview-data";
+import {
+  FACULTIES,
+  formatRupiah,
+  type KtmStatus,
+  type UserProfile,
+} from "@/lib/preview-data";
 
 const KTM_STATUS_STEPS: KtmStatus[] = [
   "Belum Verifikasi",
@@ -13,8 +18,329 @@ const KTM_STATUS_STEPS: KtmStatus[] = [
   "Ditolak",
 ];
 
+function ProfilIdentityForm({
+  profile,
+  authUserId,
+  onSaveProfile,
+  onSubmitKtm,
+  onOpenDelete,
+}: {
+  profile: UserProfile;
+  authUserId: string | null;
+  onSaveProfile: (patch: Partial<UserProfile>) => Promise<void> | void;
+  onSubmitKtm: (input: {
+    nim: string;
+    name?: string;
+    wa: string;
+    email: string;
+    faculty: string;
+    prodi: string;
+    pdpConsent: boolean;
+    photoName: string;
+    photoFile?: File | null;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  onOpenDelete: () => void;
+}) {
+  const [nim, setNim] = useState(profile.nim);
+  const [name, setName] = useState(profile.name);
+  const [prodi, setProdi] = useState(profile.prodi);
+  const [faculty, setFaculty] = useState(profile.faculty);
+  const [email, setEmail] = useState(profile.email);
+  const [wa, setWa] = useState(profile.wa);
+  const [pdpConsent, setPdpConsent] = useState(profile.pdpConsent);
+  const [photoName, setPhotoName] = useState(profile.ktmPhotoName ?? "");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [formError, setFormError] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmitKtm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaveMessage("");
+    if (!nim.trim() || !wa.trim() || !email.trim()) {
+      setFormError("Mohon lengkapi NIM, email aktif, dan nomor WhatsApp.");
+      return;
+    }
+    if (authUserId && !photoFile && !profile.ktmPhotoName) {
+      setFormError("Pilih file foto KTM Unilak terlebih dahulu untuk diunggah ke bucket privat.");
+      return;
+    }
+    if (!pdpConsent) {
+      setFormError(
+        "Persetujuan UU PDP wajib dicentang: nomor WhatsApp dibagikan hanya saat status pesanan Dijadwalkan."
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await onSubmitKtm({
+        nim: nim.trim(),
+        name: name.trim() || profile.name,
+        wa: wa.trim(),
+        email: email.trim(),
+        faculty,
+        prodi: prodi.trim() || "Teknik Informatika",
+        pdpConsent,
+        photoName,
+        photoFile,
+      });
+      if (!res.ok) {
+        setFormError(res.error ?? "Gagal mengirim verifikasi KTM.");
+        return;
+      }
+      setFormError("");
+      setSaveMessage(
+        authUserId
+          ? "Foto KTM berhasil diunggah ke bucket privat dan pengajuan verifikasi tersimpan di Supabase."
+          : "Pengajuan verifikasi KTM dikirim ke antrean Admin. Cek status atau proses persetujuan di /admin."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveProfileOnly = async () => {
+    setFormError("");
+    await onSaveProfile({
+      name: name.trim() || profile.name,
+      prodi: prodi.trim() || profile.prodi,
+      faculty,
+      wa: wa.trim() || profile.wa,
+    });
+    setSaveMessage(
+      authUserId
+        ? "Data profil tampilan tersimpan ke database Supabase."
+        : "Data profil tampilan diperbarui."
+    );
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmitKtm}
+      className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5 sm:p-6"
+      noValidate
+    >
+      <h2 className="text-lg font-extrabold text-[#111827]">
+        Data Identitas &amp; Unggah Foto KTM
+      </h2>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label
+            htmlFor="profil-nama"
+            className="block text-xs font-extrabold text-[#111827]"
+          >
+            Nama Tampilan (Sesuai KTM)
+          </label>
+          <input
+            id="profil-nama"
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="profil-nim"
+            className="block text-xs font-extrabold text-[#111827]"
+          >
+            NIM Mahasiswa Aktif Unilak (Satu NIM, Satu Akun)
+          </label>
+          <input
+            id="profil-nim"
+            type="text"
+            inputMode="numeric"
+            value={nim}
+            onChange={(e) => {
+              setNim(e.target.value);
+              setFormError("");
+            }}
+            placeholder="Masukkan NIM sesuai Kartu Tanda Mahasiswa"
+            className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label
+            htmlFor="profil-fakultas"
+            className="block text-xs font-extrabold text-[#111827]"
+          >
+            Fakultas
+          </label>
+          <select
+            id="profil-fakultas"
+            value={faculty}
+            onChange={(e) => setFaculty(e.target.value)}
+            className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold sm:text-sm"
+          >
+            {FACULTIES.map((fac) => (
+              <option key={fac} value={fac}>
+                {fac}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label
+            htmlFor="profil-prodi"
+            className="block text-xs font-extrabold text-[#111827]"
+          >
+            Program Studi
+          </label>
+          <input
+            id="profil-prodi"
+            type="text"
+            value={prodi}
+            onChange={(e) => setProdi(e.target.value)}
+            className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label
+            htmlFor="profil-email"
+            className="block text-xs font-extrabold text-[#111827]"
+          >
+            Email Aktif
+          </label>
+          <input
+            id="profil-email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setFormError("");
+            }}
+            placeholder="nama@email.com"
+            className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="profil-wa"
+            className="block text-xs font-extrabold text-[#111827]"
+          >
+            Nomor WhatsApp Aktif
+          </label>
+          <input
+            id="profil-wa"
+            type="tel"
+            autoComplete="tel"
+            value={wa}
+            onChange={(e) => {
+              setWa(e.target.value);
+              setFormError("");
+            }}
+            placeholder="Contoh: 0812xxxxxxxx"
+            className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label
+          htmlFor="foto-ktm"
+          className="block text-xs font-extrabold text-[#111827]"
+        >
+          Unggah Foto KTM Unilak (Bucket Privat)
+        </label>
+        <input
+          id="foto-ktm"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const picked = e.target.files?.[0] ?? null;
+            setPhotoFile(picked);
+            setPhotoName(picked?.name ?? "ktm-preview.jpg");
+            setFormError("");
+          }}
+          className="mt-1 block min-h-11 w-full rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-2 text-sm font-semibold"
+        />
+        {photoName && (
+          <p className="mt-1 text-xs font-bold text-[#15803D]">
+            Berkas siap diunggah: {photoName}
+          </p>
+        )}
+      </div>
+
+      <label className="flex min-h-11 items-start gap-3 rounded-2xl border-2 border-[#111827] bg-[#FEF9C3] p-3.5 text-xs font-semibold leading-snug text-[#111827]">
+        <input
+          type="checkbox"
+          checked={pdpConsent}
+          onChange={(e) => {
+            setPdpConsent(e.target.checked);
+            setFormError("");
+          }}
+          className="mt-0.5 h-5 w-5 shrink-0 accent-[#15803D]"
+        />
+        <span>
+          Saya menyetujui ketentuan UU No. 27 Tahun 2022 (UU PDP) bahwa nomor WhatsApp
+          saya baru dibagikan kepada lawan transaksi setelah status pesanan{" "}
+          <strong>Dijadwalkan</strong>.
+        </span>
+      </label>
+
+      {formError && (
+        <div
+          role="alert"
+          className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
+        >
+          Perhatian: {formError}
+        </div>
+      )}
+
+      {saveMessage && (
+        <div
+          role="status"
+          className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-bold text-[#14532D]"
+        >
+          {saveMessage}
+        </div>
+      )}
+
+      <div className="flex flex-wrap justify-between gap-3 border-t border-[#111827]/15 pt-4">
+        <button
+          type="button"
+          onClick={onOpenDelete}
+          className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
+        >
+          Hapus Akun Mandiri
+        </button>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => void handleSaveProfileOnly()}
+            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827]"
+          >
+            Simpan Perubahan Profil
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534] disabled:opacity-60"
+          >
+            {submitting ? "Mengunggah..." : "Ajukan Verifikasi KTM"}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
 export default function ProfilPage() {
   const {
+    authUserId,
+    signOutAccount,
     products,
     myListingIds,
     updateMyListing,
@@ -26,16 +352,6 @@ export default function ProfilPage() {
     deleteOwnAccount,
   } = useMarketplace();
 
-  const [nim, setNim] = useState(profile.nim);
-  const [name, setName] = useState(profile.name);
-  const [prodi, setProdi] = useState(profile.prodi);
-  const [faculty, setFaculty] = useState(profile.faculty);
-  const [email, setEmail] = useState(profile.email);
-  const [wa, setWa] = useState(profile.wa);
-  const [pdpConsent, setPdpConsent] = useState(profile.pdpConsent);
-  const [photoName, setPhotoName] = useState(profile.ktmPhotoName ?? "");
-  const [formError, setFormError] = useState("");
-  const [saveMessage, setSaveMessage] = useState("");
   const [listingMessage, setListingMessage] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
@@ -46,45 +362,8 @@ export default function ProfilPage() {
   const [deleteError, setDeleteError] = useState("");
   const [deleteSuccess, setDeleteSuccess] = useState(false);
 
-  const handleSubmitKtm = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nim.trim() || !wa.trim() || !email.trim()) {
-      setFormError("Mohon lengkapi NIM, email aktif, dan nomor WhatsApp.");
-      return;
-    }
-    if (!pdpConsent) {
-      setFormError(
-        "Persetujuan UU PDP wajib dicentang: nomor WhatsApp dibagikan hanya saat status pesanan Dijadwalkan."
-      );
-      return;
-    }
-    updateProfile({ name: name.trim() || profile.name });
-    submitKtmVerification({
-      nim: nim.trim(),
-      wa: wa.trim(),
-      email: email.trim(),
-      faculty,
-      prodi: prodi.trim() || "Teknik Informatika",
-      pdpConsent,
-      photoName,
-    });
-    setFormError("");
-    setSaveMessage(
-      "Pengajuan verifikasi KTM dikirim ke antrean Admin. Cek status atau proses persetujuan di /admin."
-    );
-  };
-
-  const handleSaveProfileOnly = () => {
-    updateProfile({
-      name: name.trim() || profile.name,
-      prodi: prodi.trim() || profile.prodi,
-      faculty,
-    });
-    setSaveMessage("Data profil tampilan diperbarui.");
-  };
-
-  const handleDeleteAccount = () => {
-    const res = deleteOwnAccount();
+  const handleDeleteAccount = async () => {
+    const res = await deleteOwnAccount();
     if (!res.ok) {
       setDeleteError(res.error ?? "Gagal menghapus akun.");
       return;
@@ -104,17 +383,29 @@ export default function ProfilPage() {
             Profil Mahasiswa &amp; Verifikasi KTM
           </h1>
           <p className="mt-1 text-sm font-medium text-[#475569]">
-            Akun Terverifikasi dapat menjual, memesan, dan memberi ulasan di UnilakMart.
+            {authUserId
+              ? "Akun terhubung ke sesi Supabase Auth. Akun Terverifikasi dapat menjual, memesan, dan memberi ulasan."
+              : "Mode pratinjau tamu. Masuk lewat /masuk untuk menyimpan perubahan ke akun Supabase Anda."}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/masuk"
-            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4]"
-          >
-            Masuk / Ganti Akun
-          </Link>
+          {authUserId ? (
+            <button
+              type="button"
+              onClick={() => void signOutAccount()}
+              className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF2F2]"
+            >
+              Keluar Akun
+            </button>
+          ) : (
+            <Link
+              href="/masuk"
+              className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4]"
+            >
+              Masuk / Ganti Akun
+            </Link>
+          )}
           <Link
             href="/admin"
             className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
@@ -171,224 +462,18 @@ export default function ProfilPage() {
         </p>
       </section>
 
-      {/* Form Pendaftaran / Pengajuan Verifikasi KTM */}
-      <form
-        onSubmit={handleSubmitKtm}
-        className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5 sm:p-6"
-        noValidate
-      >
-        <h2 className="text-lg font-extrabold text-[#111827]">
-          Data Identitas &amp; Unggah Foto KTM
-        </h2>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="profil-nama"
-              className="block text-xs font-extrabold text-[#111827]"
-            >
-              Nama Tampilan (Sesuai KTM)
-            </label>
-            <input
-              id="profil-nama"
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="profil-nim"
-              className="block text-xs font-extrabold text-[#111827]"
-            >
-              NIM Mahasiswa Aktif Unilak (Satu NIM, Satu Akun)
-            </label>
-            <input
-              id="profil-nim"
-              type="text"
-              inputMode="numeric"
-              value={nim}
-              onChange={(e) => {
-                setNim(e.target.value);
-                setFormError("");
-              }}
-              placeholder="Masukkan NIM sesuai Kartu Tanda Mahasiswa"
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="profil-fakultas"
-              className="block text-xs font-extrabold text-[#111827]"
-            >
-              Fakultas
-            </label>
-            <select
-              id="profil-fakultas"
-              value={faculty}
-              onChange={(e) => setFaculty(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold sm:text-sm"
-            >
-              {FACULTIES.map((fac) => (
-                <option key={fac} value={fac}>
-                  {fac}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor="profil-prodi"
-              className="block text-xs font-extrabold text-[#111827]"
-            >
-              Program Studi
-            </label>
-            <input
-              id="profil-prodi"
-              type="text"
-              value={prodi}
-              onChange={(e) => setProdi(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="profil-email"
-              className="block text-xs font-extrabold text-[#111827]"
-            >
-              Email Aktif
-            </label>
-            <input
-              id="profil-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setFormError("");
-              }}
-              placeholder="nama@email.com"
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="profil-wa"
-              className="block text-xs font-extrabold text-[#111827]"
-            >
-              Nomor WhatsApp Aktif
-            </label>
-            <input
-              id="profil-wa"
-              type="tel"
-              autoComplete="tel"
-              value={wa}
-              onChange={(e) => {
-                setWa(e.target.value);
-                setFormError("");
-              }}
-              placeholder="Contoh: 0812xxxxxxxx"
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="foto-ktm"
-            className="block text-xs font-extrabold text-[#111827]"
-          >
-            Unggah Foto KTM Unilak (Bucket Privat)
-          </label>
-          <input
-            id="foto-ktm"
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setPhotoName(e.target.files?.[0]?.name ?? "ktm-preview.jpg")
-            }
-            className="mt-1 block min-h-11 w-full rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-2 text-sm font-semibold"
-          />
-          {photoName && (
-            <p className="mt-1 text-xs font-bold text-[#15803D]">
-              Berkas siap diunggah: {photoName}
-            </p>
-          )}
-        </div>
-
-        <label className="flex min-h-11 items-start gap-3 rounded-2xl border-2 border-[#111827] bg-[#FEF9C3] p-3.5 text-xs font-semibold leading-snug text-[#111827]">
-          <input
-            type="checkbox"
-            checked={pdpConsent}
-            onChange={(e) => {
-              setPdpConsent(e.target.checked);
-              setFormError("");
-            }}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-[#15803D]"
-          />
-          <span>
-            Saya menyetujui ketentuan UU No. 27 Tahun 2022 (UU PDP) bahwa nomor WhatsApp
-            saya baru dibagikan kepada lawan transaksi setelah status pesanan{" "}
-            <strong>Dijadwalkan</strong>.
-          </span>
-        </label>
-
-        {formError && (
-          <div
-            role="alert"
-            className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
-          >
-            Perhatian: {formError}
-          </div>
-        )}
-
-        {saveMessage && (
-          <div
-            role="status"
-            className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-bold text-[#14532D]"
-          >
-            {saveMessage}
-          </div>
-        )}
-
-        <div className="flex flex-wrap justify-between gap-3 border-t border-[#111827]/15 pt-4">
-          <button
-            type="button"
-            onClick={() => {
-              setDeleteError("");
-              setDeleteSuccess(false);
-              setDeleteModalOpen(true);
-            }}
-            className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
-          >
-            Hapus Akun Mandiri
-          </button>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleSaveProfileOnly}
-              className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827]"
-            >
-              Simpan Perubahan Profil
-            </button>
-            <button
-              type="submit"
-              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534]"
-            >
-              Ajukan Verifikasi KTM
-            </button>
-          </div>
-        </div>
-      </form>
+      <ProfilIdentityForm
+        key={`${authUserId ?? "preview"}-${profile.nim}-${profile.email}-${profile.ktmStatus}`}
+        profile={profile}
+        authUserId={authUserId}
+        onSaveProfile={updateProfile}
+        onSubmitKtm={submitKtmVerification}
+        onOpenDelete={() => {
+          setDeleteError("");
+          setDeleteSuccess(false);
+          setDeleteModalOpen(true);
+        }}
+      />
 
       {/* Panel Kelola Listing Penjual */}
       <section
@@ -424,7 +509,7 @@ export default function ProfilPage() {
 
         {myListings.length === 0 ? (
           <div className="rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-5 text-center text-xs font-semibold text-[#475569]">
-            Belum ada listing yang Anda pasang pada sesi pratinjau ini.
+            Belum ada listing milik akun ini.
           </div>
         ) : (
           <ul className="space-y-3">
@@ -553,7 +638,7 @@ export default function ProfilPage() {
                       type="button"
                       onClick={() => {
                         deleteMyListing(item.id);
-                        setListingMessage(`Listing "${item.title}" dihapus dari pratinjau.`);
+                        setListingMessage(`Listing "${item.title}" dihapus.`);
                       }}
                       className="min-h-11 rounded-xl border border-[#991B1B]/60 bg-white px-3.5 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
                     >
@@ -622,7 +707,7 @@ export default function ProfilPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleDeleteAccount}
+                  onClick={() => void handleDeleteAccount()}
                   className="min-h-11 rounded-full border-2 border-[#111827] bg-[#991B1B] px-5 text-xs font-bold text-white"
                 >
                   Hapus &amp; Anonimkan Akun
@@ -635,4 +720,3 @@ export default function ProfilPage() {
     </main>
   );
 }
-
