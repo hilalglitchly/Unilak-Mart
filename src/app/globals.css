@@ -235,7 +235,9 @@
   .listing-card-meta {
     font-size: 0.75rem;
   }
+}
 
+@container (min-width: 245px) {
   .listing-card-detail {
     display: inline-flex;
   }

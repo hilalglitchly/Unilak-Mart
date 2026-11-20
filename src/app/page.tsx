@@ -94,7 +94,7 @@ function ListingCard({
     <article className="listing-card-shell flex flex-col justify-between rounded-xl border-2 border-[#111827] bg-white transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#111827] active:scale-[0.995] sm:rounded-2xl">
       <div>
         <div
-          className={`relative flex h-28 items-center justify-center rounded-t-[10px] border-b-2 border-[#111827] p-2.5 sm:h-44 sm:rounded-t-[14px] sm:p-3 ${item.cardBg}`}
+          className={`relative flex h-28 items-center justify-center rounded-t-[10px] border-b-2 border-[#111827] p-2.5 sm:h-32 sm:rounded-t-[14px] sm:p-3 xl:h-36 ${item.cardBg}`}
         >
           {meaningfulBadge && (
             <span
@@ -142,14 +142,14 @@ function ListingCard({
                 className="h-full w-full rounded-lg object-contain"
               />
             ) : (
-              <ProductIllustration type={item.illustration} className="h-20 w-28 sm:h-28 sm:w-40" />
+              <ProductIllustration type={item.illustration} className="h-20 w-28 sm:h-24 sm:w-32" />
             )}
           </div>
         </div>
 
         <div className="listing-card-body space-y-1 sm:space-y-1.5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-1.5 gap-y-0.5">
-            <span className="text-sm font-extrabold text-[#15803D] sm:text-lg">
+            <span className="text-sm font-extrabold text-[#15803D] sm:text-base">
               {item.priceLabel}
             </span>
             <span
@@ -165,7 +165,7 @@ function ListingCard({
             </span>
           </div>
 
-          <h3 className="line-clamp-2 text-[13px] font-extrabold leading-snug text-[#111827] sm:text-base">
+          <h3 className="line-clamp-2 text-[13px] font-extrabold leading-snug text-[#111827] sm:text-sm">
             <Link href={`/listing/${item.id}`} className="card-link hover:underline">
               {item.title}
             </Link>
@@ -780,7 +780,7 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
             {filteredProducts.map((item) => (
               <ListingCard
                 key={item.id}
