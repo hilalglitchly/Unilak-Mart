@@ -309,7 +309,7 @@ export default function Home() {
     setCodError("");
   };
 
-  const handleCodSubmit = (e: React.FormEvent) => {
+  const handleCodSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!codProduct) return;
     setCodTouched(true);
@@ -327,7 +327,7 @@ export default function Home() {
       ? proposedTime.replace("T", " ") + " WIB"
       : proposedTime;
 
-    const result = createOrder({
+    const result = await createOrder({
       product: codProduct,
       quantity,
       codSpot: codSpotChoice,

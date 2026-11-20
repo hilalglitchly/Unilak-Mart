@@ -35,10 +35,12 @@ function getStatusBadgeClass(status: OrderStatus): string {
 }
 
 export default function PesananPage() {
-  const { orders, updateOrderStatus, addOrderReview, submitReport } =
+  const { authUserId, orders, updateOrderStatus, addOrderReview, submitReport } =
     useMarketplace();
 
   const [roleView, setRoleView] = useState<"pembeli" | "penjual">("pembeli");
+  const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
   const [cancelTarget, setCancelTarget] = useState<OrderItem | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState("");
@@ -47,23 +49,60 @@ export default function PesananPage() {
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
 
-  const handleCancelSubmit = (e: React.FormEvent) => {
+  const visibleOrders = authUserId
+    ? orders.filter((o) =>
+        roleView === "pembeli"
+          ? o.buyerId === authUserId
+          : o.sellerId === authUserId
+      )
+    : orders;
+
+  const runOrderTransition = async (
+    orderId: string,
+    nextStatus: OrderStatus,
+    reason?: string
+  ) => {
+    setActionError("");
+    setActionNotice("");
+    const res = await updateOrderStatus(orderId, nextStatus, reason);
+    if (!res.ok) {
+      setActionError(res.error ?? "Gagal memperbarui status pesanan.");
+      return false;
+    }
+    setActionNotice(`Status pesanan diperbarui menjadi ${nextStatus}.`);
+    return true;
+  };
+
+  const handleCancelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cancelTarget) return;
     if (!cancelReason.trim()) {
       setCancelError("Alasan pembatalan wajib diisi sebelum membatalkan pesanan.");
       return;
     }
-    updateOrderStatus(cancelTarget.id, "Dibatalkan", cancelReason.trim());
+    const ok = await runOrderTransition(
+      cancelTarget.id,
+      "Dibatalkan",
+      cancelReason.trim()
+    );
+    if (!ok) {
+      setCancelError("Pembatalan ditolak oleh server.");
+      return;
+    }
     setCancelTarget(null);
     setCancelReason("");
     setCancelError("");
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewTarget) return;
-    addOrderReview(reviewTarget.id, rating, reviewText.trim());
+    const res = await addOrderReview(reviewTarget.id, rating, reviewText.trim());
+    if (!res.ok) {
+      setActionError(res.error ?? "Gagal menyimpan ulasan.");
+      return;
+    }
+    setActionNotice("Ulasan transaksi COD tersimpan.");
     setReviewTarget(null);
     setRating(5);
     setReviewText("");
@@ -87,7 +126,7 @@ export default function PesananPage() {
 
         <div
           role="tablist"
-          aria-label="Sudut pandang pratinjau pesanan"
+          aria-label="Sudut pandang pesanan"
           className="inline-flex rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-1"
         >
           <button
@@ -101,7 +140,7 @@ export default function PesananPage() {
                 : "text-[#111827]"
             }`}
           >
-            Mode Pembeli
+            {authUserId ? "Pesanan Saya" : "Mode Pembeli"}
           </button>
           <button
             type="button"
@@ -114,18 +153,38 @@ export default function PesananPage() {
                 : "text-[#111827]"
             }`}
           >
-            Simulasi Penjual
+            {authUserId ? "Pesanan Masuk" : "Simulasi Penjual"}
           </button>
         </div>
       </div>
 
-      {orders.length === 0 ? (
+      {actionError && (
+        <div
+          role="alert"
+          className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3.5 text-xs font-bold text-[#991B1B]"
+        >
+          Perhatian: {actionError}
+        </div>
+      )}
+
+      {actionNotice && (
+        <div
+          role="status"
+          className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3.5 text-xs font-bold text-[#14532D]"
+        >
+          {actionNotice}
+        </div>
+      )}
+
+      {visibleOrders.length === 0 ? (
         <div className="rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-8 text-center">
           <h2 className="text-lg font-extrabold text-[#111827]">
             Belum ada pesanan COD
           </h2>
           <p className="mt-2 text-sm font-medium text-[#334155]">
-            Jelajahi katalog dan ajukan jadwal COD di titik kampus terdekat.
+            {authUserId && roleView === "penjual"
+              ? "Belum ada permintaan COD masuk untuk listing milik Anda."
+              : "Jelajahi katalog dan ajukan jadwal COD di titik kampus terdekat."}
           </p>
           <Link
             href="/"
@@ -136,11 +195,12 @@ export default function PesananPage() {
         </div>
       ) : (
         <ul className="space-y-4">
-          {orders.map((order) => {
+          {visibleOrders.map((order) => {
             const waUnlocked =
-              order.status === "Dijadwalkan" ||
-              order.status === "Sudah Diserahkan" ||
-              order.status === "Selesai";
+              (order.status === "Dijadwalkan" ||
+                order.status === "Sudah Diserahkan" ||
+                order.status === "Selesai") &&
+              Boolean(order.sellerWa);
             const canCancel =
               order.status === "Menunggu" || order.status === "Dijadwalkan";
             const currentStepIdx = TIMELINE_STEPS.indexOf(order.status);
@@ -193,7 +253,9 @@ export default function PesananPage() {
                       </a>
                     ) : (
                       <span className="inline-flex min-h-11 items-center rounded-xl border border-[#111827]/25 bg-[#F8FAFC] px-3.5 py-2 text-xs font-bold text-[#475569]">
-                        WhatsApp terkunci sebelum status Dijadwalkan
+                        {order.status === "Selesai"
+                          ? "Transaksi selesai (kontak ditutup)"
+                          : "WhatsApp terkunci sebelum status Dijadwalkan"}
                       </span>
                     )}
                   </div>
@@ -251,25 +313,31 @@ export default function PesananPage() {
                     <>
                       <button
                         type="button"
-                        onClick={() => updateOrderStatus(order.id, "Dijadwalkan")}
+                        onClick={() => void runOrderTransition(order.id, "Dijadwalkan")}
                         className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
                       >
                         Setujui Jadwal COD
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => updateOrderStatus(order.id, "Kedaluwarsa")}
-                        className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-2 text-xs font-bold text-[#111827]"
-                      >
-                        Tandai Kedaluwarsa
-                      </button>
+                      {!authUserId && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void runOrderTransition(order.id, "Kedaluwarsa")
+                          }
+                          className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-2 text-xs font-bold text-[#111827]"
+                        >
+                          Tandai Kedaluwarsa
+                        </button>
+                      )}
                     </>
                   )}
 
                   {roleView === "penjual" && order.status === "Dijadwalkan" && (
                     <button
                       type="button"
-                      onClick={() => updateOrderStatus(order.id, "Sudah Diserahkan")}
+                      onClick={() =>
+                        void runOrderTransition(order.id, "Sudah Diserahkan")
+                      }
                       className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827]"
                     >
                       Tandai Sudah Diserahkan
@@ -281,7 +349,7 @@ export default function PesananPage() {
                       order.status === "Sudah Diserahkan") && (
                       <button
                         type="button"
-                        onClick={() => updateOrderStatus(order.id, "Selesai")}
+                        onClick={() => void runOrderTransition(order.id, "Selesai")}
                         className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
                       >
                         Konfirmasi Barang Diterima
@@ -320,14 +388,22 @@ export default function PesananPage() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      submitReport({
+                    onClick={async () => {
+                      const res = await submitReport({
                         targetType: "Pesanan",
                         targetId: order.id,
                         targetTitle: `${order.code} - ${order.productTitle}`,
-                        reason: "Laporan kendala COD / no-show dari halaman Pesanan.",
-                      })
-                    }
+                        reason:
+                          "Laporan kendala COD / no-show dari halaman Pesanan.",
+                      });
+                      if (!res.ok) {
+                        setActionError(res.error ?? "Gagal mengirim laporan.");
+                      } else {
+                        setActionNotice(
+                          `Laporan kendala untuk ${order.code} dikirim ke Administrator.`
+                        );
+                      }
+                    }}
                     className="inline-flex min-h-11 items-center rounded-xl border border-[#111827]/35 bg-white px-3.5 py-2 text-xs font-bold text-[#334155] hover:bg-[#F8FAFC]"
                   >
                     Laporkan Kendala
@@ -492,4 +568,3 @@ export default function PesananPage() {
     </main>
   );
 }
-

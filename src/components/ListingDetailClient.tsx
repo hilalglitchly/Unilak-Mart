@@ -62,7 +62,7 @@ export function ListingDetailClient({ id }: { id: string }) {
       ? product.uploadedImages.slice(0, 5)
       : ["Slide Utama (Ilustrasi)", "Detail Kondisi", "Area Spot COD"];
 
-  const handleOrderSubmit = (e: React.FormEvent) => {
+  const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSpot || !proposedTime.trim()) {
       setOrderError("Pilih 1 titik COD dan tentukan jadwal temu terlebih dahulu.");
@@ -72,7 +72,7 @@ export function ListingDetailClient({ id }: { id: string }) {
       ? proposedTime.replace("T", " ") + " WIB"
       : proposedTime;
 
-    const res = createOrder({
+    const res = await createOrder({
       product,
       quantity,
       codSpot: selectedSpot,
@@ -87,18 +87,22 @@ export function ListingDetailClient({ id }: { id: string }) {
     setCreatedOrderCode(res.order?.code ?? "UM-BARU");
   };
 
-  const handleReportSubmit = (e: React.FormEvent) => {
+  const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportReason.trim()) {
       setReportError("Sebutkan alasan pelanggaran atau kendala yang ditemukan.");
       return;
     }
-    submitReport({
+    const res = await submitReport({
       targetType: "Listing",
       targetId: product.id,
       targetTitle: product.title,
       reason: reportReason.trim(),
     });
+    if (!res.ok) {
+      setReportError(res.error ?? "Gagal mengirim laporan.");
+      return;
+    }
     setReportError("");
     setReportSent(true);
   };

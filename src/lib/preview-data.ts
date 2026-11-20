@@ -82,6 +82,10 @@ export interface ProductItem {
 
 export interface OrderItem {
   id: string;
+  dbId?: number;
+  listingDbId?: number;
+  buyerId?: string;
+  sellerId?: string;
   code: string;
   productId: string;
   productTitle: string;
@@ -111,6 +115,7 @@ export interface NotificationItem {
 
 export interface ReportItem {
   id: string;
+  dbId?: number;
   targetType: "Listing" | "Pengguna" | "Pesanan";
   targetId: string;
   targetTitle: string;
@@ -121,6 +126,7 @@ export interface ReportItem {
 
 export interface KtmQueueItem {
   id: string;
+  dbId?: number;
   nim: string;
   name: string;
   prodi: string;
@@ -144,6 +150,7 @@ export interface UserProfile {
   ktmStatus: KtmStatus;
   ktmReason?: string;
   ktmPhotoName?: string;
+  systemRole?: "user" | "admin";
   deletedAt?: string;
 }
 

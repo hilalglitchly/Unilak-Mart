@@ -9,13 +9,20 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  deleteApprovedKtmObjectAction,
+} from "@/app/admin/actions";
 import { signOutAction } from "@/app/masuk/actions";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   mapDbCodSpot,
+  mapDbKtmQueueItem,
   mapDbListingToProduct,
   mapDbNotification,
+  mapDbOrder,
   mapDbProfileToUserProfile,
+  mapDbReport,
+  mapDbReview,
 } from "@/lib/supabase/mappers";
 import {
   INITIAL_COD_SPOTS,
@@ -36,6 +43,7 @@ import {
   type OrderItem,
   type OrderStatus,
   type ProductItem,
+  type ProductReview,
   type ReportItem,
   type UserProfile,
 } from "@/lib/preview-data";
@@ -52,6 +60,7 @@ export interface NewListingInput {
   isUmkm: boolean;
   codSpots: string[];
   uploadedImages: string[];
+  uploadedFiles?: File[];
 }
 
 export interface CreateOrderInput {
@@ -79,10 +88,22 @@ interface MarketplaceContextValue {
   onlySaved: boolean;
   setOnlySaved: (val: boolean | ((prev: boolean) => boolean)) => void;
   orders: OrderItem[];
-  createOrder: (input: CreateOrderInput) => { ok: boolean; error?: string; order?: OrderItem };
-  updateOrderStatus: (orderId: string, nextStatus: OrderStatus, cancelReason?: string) => void;
-  addOrderReview: (orderId: string, rating: number, comment: string) => void;
-  addListing: (input: NewListingInput) => ProductItem;
+  createOrder: (
+    input: CreateOrderInput
+  ) => Promise<{ ok: boolean; error?: string; order?: OrderItem }>;
+  updateOrderStatus: (
+    orderId: string,
+    nextStatus: OrderStatus,
+    cancelReason?: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  addOrderReview: (
+    orderId: string,
+    rating: number,
+    comment: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  addListing: (
+    input: NewListingInput
+  ) => Promise<{ ok: boolean; error?: string; product?: ProductItem }>;
   myListingIds: string[];
   updateMyListing: (
     productId: string,
@@ -119,18 +140,21 @@ interface MarketplaceContextValue {
   }) => Promise<{ ok: boolean; error?: string }>;
   deleteOwnAccount: () => Promise<{ ok: boolean; error?: string }>;
   ktmQueue: KtmQueueItem[];
-  approveKtm: (queueId: string) => void;
-  rejectKtm: (queueId: string, reason: string) => void;
+  approveKtm: (queueId: string) => Promise<{ ok: boolean; error?: string }>;
+  rejectKtm: (queueId: string, reason: string) => Promise<{ ok: boolean; error?: string }>;
   reports: ReportItem[];
   submitReport: (input: {
     targetType: ReportItem["targetType"];
     targetId: string;
     targetTitle: string;
     reason: string;
-  }) => void;
-  resolveReport: (reportId: string, action: "hide" | "dismiss") => void;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  resolveReport: (
+    reportId: string,
+    action: "hide" | "dismiss"
+  ) => Promise<{ ok: boolean; error?: string }>;
   codSpots: CodSpotItem[];
-  toggleCodSpot: (spotId: string) => void;
+  toggleCodSpot: (spotId: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
@@ -161,16 +185,21 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient();
 
-      const [spotsRes, pubProfilesRes, listingsRes, userRes] = await Promise.all([
-        supabase.from("cod_spots").select("*").order("sort_order", { ascending: true }),
-        supabase.from("public_profiles").select("*"),
-        supabase
-          .from("listings")
-          .select("*")
-          .order("is_umkm", { ascending: false })
-          .order("created_at", { ascending: false }),
-        supabase.auth.getUser(),
-      ]);
+      const [spotsRes, pubProfilesRes, listingsRes, reviewsRes, userRes] =
+        await Promise.all([
+          supabase.from("cod_spots").select("*").order("sort_order", { ascending: true }),
+          supabase.from("public_profiles").select("*"),
+          supabase
+            .from("listings")
+            .select("*")
+            .order("is_umkm", { ascending: false })
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("reviews")
+            .select("*")
+            .order("created_at", { ascending: false }),
+          supabase.auth.getUser(),
+        ]);
 
       const spotRows = spotsRes.data ?? [];
       const spotNameById = new Map(spotRows.map((s) => [s.id, s.name]));
@@ -182,19 +211,33 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         (pubProfilesRes.data ?? []).map((p) => [p.id, p])
       );
 
+      const allReviews = reviewsRes.data ?? [];
+      const reviewsByListing = new Map<number, ProductReview[]>();
+      for (const rev of allReviews) {
+        const list = reviewsByListing.get(rev.listing_id) ?? [];
+        list.push(mapDbReview(rev, publicProfilesMap));
+        reviewsByListing.set(rev.listing_id, list);
+      }
+
       const listingRows = listingsRes.data ?? [];
       if (listingRows.length > 0) {
         setProducts(
           listingRows.map((row) =>
-            mapDbListingToProduct(row, publicProfilesMap, spotNameById)
+            mapDbListingToProduct(
+              row,
+              publicProfilesMap,
+              spotNameById,
+              reviewsByListing.get(row.id)
+            )
           )
         );
       }
 
+      const listingSlugById = new Map(listingRows.map((r) => [r.id, r.slug]));
       const uid = userRes.data.user?.id ?? null;
 
       if (uid) {
-        const [profileRes, savedRes, notifRes] = await Promise.all([
+        const [profileRes, savedRes, notifRes, ordersRes] = await Promise.all([
           supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
           supabase.from("saved_listings").select("listing_id").eq("user_id", uid),
           supabase
@@ -203,6 +246,11 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
             .eq("user_id", uid)
             .order("created_at", { ascending: false })
             .limit(20),
+          supabase
+            .from("orders")
+            .select("*")
+            .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
+            .order("created_at", { ascending: false }),
         ]);
 
         if (profileRes.data) {
@@ -214,19 +262,80 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           .map((row) => row.slug);
         setMyListingIds(ownedSlugs);
 
-        const slugByDbId = new Map(listingRows.map((r) => [r.id, r.slug]));
         const userSavedSlugs = (savedRes.data ?? [])
-          .map((s) => slugByDbId.get(s.listing_id))
+          .map((s) => listingSlugById.get(s.listing_id))
           .filter((slug): slug is string => Boolean(slug));
         setSavedIds(userSavedSlugs);
 
         if (notifRes.data) {
           setNotifications(notifRes.data.map(mapDbNotification));
         }
+
+        const orderRows = ordersRes.data ?? [];
+        const waMap = new Map<number, string>();
+        await Promise.all(
+          orderRows
+            .filter(
+              (o) =>
+                o.status === "Dijadwalkan" || o.status === "Sudah Diserahkan"
+            )
+            .map(async (o) => {
+              const { data: waRows } = await supabase.rpc(
+                "get_order_counterparty_wa",
+                { p_order_id: o.id }
+              );
+              const wa = waRows?.[0]?.counterparty_wa;
+              if (wa) waMap.set(o.id, wa);
+            })
+        );
+
+        const reviewByOrder = new Map(
+          allReviews
+            .filter((r) => r.reviewer_id === uid)
+            .map((r) => [r.order_id, r])
+        );
+        setOrders(
+          orderRows.map((row) =>
+            mapDbOrder(
+              row,
+              listingSlugById,
+              publicProfilesMap,
+              waMap.get(row.id) ?? "",
+              reviewByOrder.get(row.id)
+            )
+          )
+        );
+
+        if (profileRes.data?.system_role === "admin") {
+          const [ktmRes, repRes] = await Promise.all([
+            supabase
+              .from("ktm_verifications")
+              .select("*")
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("reports")
+              .select("*")
+              .order("created_at", { ascending: false }),
+          ]);
+          if (ktmRes.data) {
+            setKtmQueue(
+              ktmRes.data.map((row) => mapDbKtmQueueItem(row, publicProfilesMap))
+            );
+          }
+          if (repRes.data) {
+            setReports(repRes.data.map(mapDbReport));
+          }
+        } else {
+          setKtmQueue([]);
+          setReports([]);
+        }
       } else {
         setProfile(INITIAL_PROFILE);
         setMyListingIds(INITIAL_MY_LISTING_IDS);
         setNotifications(INITIAL_NOTIFICATIONS);
+        setOrders(INITIAL_ORDERS);
+        setKtmQueue(INITIAL_KTM_QUEUE);
+        setReports(INITIAL_REPORTS);
       }
 
       setAuthUserId(uid);
@@ -273,6 +382,9 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setProfile(INITIAL_PROFILE);
       setMyListingIds(INITIAL_MY_LISTING_IDS);
       setNotifications(INITIAL_NOTIFICATIONS);
+      setOrders(INITIAL_ORDERS);
+      setKtmQueue(INITIAL_KTM_QUEUE);
+      setReports(INITIAL_REPORTS);
       await refreshSupabaseData();
     }
   }, [refreshSupabaseData]);
@@ -320,13 +432,71 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const createOrder = ({
+  const createOrder = async ({
     product,
     quantity,
     codSpot,
     proposedTime,
     note,
-  }: CreateOrderInput) => {
+  }: CreateOrderInput): Promise<{
+    ok: boolean;
+    error?: string;
+    order?: OrderItem;
+  }> => {
+    if (authUserId && isSupabaseConfigured()) {
+      if (!product.dbId) {
+        return {
+          ok: false,
+          error: "Data listing belum sinkron dengan server Supabase.",
+        };
+      }
+      const spotId =
+        codSpots.find((s) => s.name === codSpot)?.id ??
+        codSpots.find((s) => s.active)?.id ??
+        "perpus-pusat";
+
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("create_cod_order", {
+        p_listing_id: product.dbId,
+        p_quantity: quantity,
+        p_cod_spot_id: spotId,
+        p_proposed_time: proposedTime,
+        p_note: note,
+      });
+
+      if (error || !data) {
+        return {
+          ok: false,
+          error: error?.message ?? "Gagal mengirim permintaan pesanan COD.",
+        };
+      }
+
+      await refreshSupabaseData();
+      return {
+        ok: true,
+        order: {
+          id: String(data.id),
+          dbId: data.id,
+          listingDbId: data.listing_id,
+          buyerId: data.buyer_id,
+          sellerId: data.seller_id,
+          code: data.code,
+          productId: product.id,
+          productTitle: data.listing_title,
+          unitPrice: data.unit_price,
+          quantity: data.quantity,
+          codSpot: data.cod_spot_name,
+          proposedTime: data.proposed_time,
+          note: data.note,
+          status: data.status as OrderStatus,
+          sellerLabel: product.sellerName,
+          sellerWa: "",
+          buyerLabel: profile.name,
+          createdAt: data.created_at,
+        },
+      };
+    }
+
     if (profile.ktmStatus !== "Terverifikasi") {
       return {
         ok: false,
@@ -379,13 +549,27 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     return { ok: true, order: newOrder };
   };
 
-  const updateOrderStatus = (
+  const updateOrderStatus = async (
     orderId: string,
     nextStatus: OrderStatus,
     cancelReason?: string
-  ) => {
+  ): Promise<{ ok: boolean; error?: string }> => {
     const target = orders.find((o) => o.id === orderId);
-    if (!target) return;
+    if (!target) return { ok: false, error: "Pesanan tidak ditemukan." };
+
+    if (authUserId && target.dbId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const { error } = await supabase.rpc("update_cod_order_status", {
+        p_order_id: target.dbId,
+        p_next_status: nextStatus,
+        p_cancel_reason: cancelReason,
+      });
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
 
     setOrders((prev) =>
       prev.map((o) =>
@@ -412,11 +596,44 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         : `Pesanan ${target.productTitle} diperbarui menjadi ${nextStatus}.`,
       "/pesanan"
     );
+    return { ok: true };
   };
 
-  const addOrderReview = (orderId: string, rating: number, comment: string) => {
+  const addOrderReview = async (
+    orderId: string,
+    rating: number,
+    comment: string
+  ): Promise<{ ok: boolean; error?: string }> => {
     const target = orders.find((o) => o.id === orderId);
-    if (!target) return;
+    if (!target) return { ok: false, error: "Pesanan tidak ditemukan." };
+
+    if (
+      authUserId &&
+      target.dbId &&
+      target.listingDbId &&
+      isSupabaseConfigured()
+    ) {
+      const counterpartyId =
+        target.buyerId === authUserId ? target.sellerId : target.buyerId;
+      if (!counterpartyId) {
+        return { ok: false, error: "ID lawan transaksi tidak valid." };
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.from("reviews").insert({
+        order_id: target.dbId,
+        listing_id: target.listingDbId,
+        reviewer_id: authUserId,
+        target_user_id: counterpartyId,
+        rating,
+        comment,
+      });
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
 
     setOrders((prev) =>
       prev.map((o) =>
@@ -445,17 +662,126 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           : p
       )
     );
+    return { ok: true };
   };
 
-  const addListing = (input: NewListingInput): ProductItem => {
+  const addListing = async (
+    input: NewListingInput
+  ): Promise<{ ok: boolean; error?: string; product?: ProductItem }> => {
     const slugBase = input.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")
       .slice(0, 32);
+    const slug = `${slugBase || "listing"}-${Date.now().toString(36)}`;
+
+    if (authUserId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const uploadedUrls: string[] = [];
+
+      const filesToUpload = (input.uploadedFiles ?? []).slice(0, 5);
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i];
+        const ext = (file.name.split(".").pop() || "jpg")
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+        const objectPath = `${authUserId}/${slug}-${i + 1}.${ext || "jpg"}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("listing-photos")
+          .upload(objectPath, file, {
+            contentType: file.type || "image/jpeg",
+            upsert: false,
+          });
+        if (uploadErr) {
+          return {
+            ok: false,
+            error: `Gagal mengunggah foto listing ke-${i + 1}: ${uploadErr.message}`,
+          };
+        }
+        const { data: pubUrl } = supabase.storage
+          .from("listing-photos")
+          .getPublicUrl(objectPath);
+        uploadedUrls.push(pubUrl.publicUrl);
+      }
+
+      const spotIds = codSpots
+        .filter((s) => input.codSpots.includes(s.name))
+        .map((s) => s.id);
+
+      const badgeText = input.isUmkm
+        ? "UMKM"
+        : input.price === 0
+          ? "Gratis Rp0"
+          : input.condition;
+      const badgeTone = input.isUmkm || input.price === 0 ? "yellow" : "green";
+      const cardBgHex = input.isUmkm ? "#FEF9C3" : "#DCFCE7";
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from("listings")
+        .insert({
+          slug,
+          seller_id: authUserId,
+          title: input.title,
+          description: input.description,
+          price: input.price,
+          condition: input.condition,
+          stock: input.alwaysAvailable ? 1 : Math.max(1, input.stock),
+          always_available: input.alwaysAvailable,
+          category: input.category,
+          faculty: input.faculty,
+          is_umkm: input.isUmkm,
+          cod_spot_ids: spotIds,
+          photos: uploadedUrls,
+          illustration: input.isUmkm ? "umkm-coffee" : "bag",
+          badge: badgeText,
+          badge_tone: badgeTone,
+          card_bg: cardBgHex,
+          status: "Aktif",
+        })
+        .select("*")
+        .single();
+
+      if (insertErr || !inserted) {
+        return {
+          ok: false,
+          error: insertErr?.message ?? "Gagal menyimpan listing baru ke Supabase.",
+        };
+      }
+
+      await refreshSupabaseData();
+      return {
+        ok: true,
+        product: {
+          id: inserted.slug,
+          dbId: inserted.id,
+          title: inserted.title,
+          description: inserted.description,
+          price: inserted.price,
+          priceLabel: formatRupiah(inserted.price),
+          condition: inserted.condition as ItemCondition,
+          stock: inserted.stock,
+          alwaysAvailable: inserted.always_available,
+          codSpots: input.codSpots,
+          faculty: inserted.faculty,
+          sellerName: profile.name,
+          sellerProdi: profile.prodi,
+          sellerVerified: profile.ktmStatus === "Terverifikasi",
+          sellerWa: "",
+          badge: badgeText,
+          badgeTone,
+          cardBg: input.isUmkm ? "bg-[#FEF08A]" : "bg-[#DCFCE7]",
+          category: input.category,
+          isUmkm: input.isUmkm,
+          illustration: input.isUmkm ? "umkm-coffee" : "bag",
+          uploadedImages: uploadedUrls,
+          createdAt: inserted.created_at,
+        },
+      };
+    }
 
     const created: ProductItem = {
-      id: `${slugBase || "listing"}-${Date.now()}`,
+      id: slug,
       title: input.title,
       description: input.description,
       price: input.price,
@@ -490,7 +816,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       `${created.title} langsung terbit di katalog UnilakMart.`,
       `/listing/${created.id}`
     );
-    return created;
+    return { ok: true, product: created };
   };
 
   const updateMyListing = (
@@ -853,8 +1179,25 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
-  const approveKtm = (queueId: string) => {
+  const approveKtm = async (
+    queueId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
     const item = ktmQueue.find((q) => q.id === queueId);
+
+    if (authUserId && item?.dbId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const { error } = await supabase.rpc("review_ktm_request", {
+        p_verification_id: item.dbId,
+        p_decision: "Terverifikasi",
+      });
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await deleteApprovedKtmObjectAction(item.photoLabel);
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
     setKtmQueue((prev) =>
       prev.map((q) =>
         q.id === queueId
@@ -880,10 +1223,29 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       "Akun kini berstatus Terverifikasi dan foto KTM telah dihapus otomatis dari bucket privat.",
       "/profil"
     );
+    return { ok: true };
   };
 
-  const rejectKtm = (queueId: string, reason: string) => {
+  const rejectKtm = async (
+    queueId: string,
+    reason: string
+  ): Promise<{ ok: boolean; error?: string }> => {
     const item = ktmQueue.find((q) => q.id === queueId);
+
+    if (authUserId && item?.dbId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const { error } = await supabase.rpc("review_ktm_request", {
+        p_verification_id: item.dbId,
+        p_decision: "Ditolak",
+        p_reason: reason,
+      });
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
     setKtmQueue((prev) =>
       prev.map((q) =>
         q.id === queueId
@@ -905,14 +1267,37 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       }));
     }
     pushNotification("Verifikasi KTM Ditolak", reason, "/profil");
+    return { ok: true };
   };
 
-  const submitReport = (input: {
+  const submitReport = async (input: {
     targetType: ReportItem["targetType"];
     targetId: string;
     targetTitle: string;
     reason: string;
-  }) => {
+  }): Promise<{ ok: boolean; error?: string }> => {
+    if (authUserId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const { error } = await supabase.from("reports").insert({
+        reporter_id: authUserId,
+        target_type: input.targetType,
+        target_id: input.targetId,
+        target_title: input.targetTitle,
+        reason: input.reason,
+      });
+      if (error) {
+        return {
+          ok: false,
+          error:
+            "Laporan hanya dapat dikirim oleh akun Terverifikasi KTM (" +
+            error.message +
+            ").",
+        };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
     setReports((prev) => [
       {
         id: `rep-${Date.now()}`,
@@ -930,11 +1315,35 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       `Laporan mengenai "${input.targetTitle}" tercatat untuk ditinjau administrator.`,
       "/admin"
     );
+    return { ok: true };
   };
 
-  const resolveReport = (reportId: string, action: "hide" | "dismiss") => {
+  const resolveReport = async (
+    reportId: string,
+    action: "hide" | "dismiss"
+  ): Promise<{ ok: boolean; error?: string }> => {
     const targetReport = reports.find((r) => r.id === reportId);
-    if (!targetReport) return;
+    if (!targetReport) return { ok: false, error: "Laporan tidak ditemukan." };
+
+    if (authUserId && targetReport.dbId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      if (action === "hide" && targetReport.targetType === "Listing") {
+        await supabase
+          .from("listings")
+          .update({ status: "Disembunyikan" })
+          .eq("slug", targetReport.targetId);
+      }
+      const { error } = await supabase
+        .from("reports")
+        .update({ status: action === "hide" ? "Disembunyikan" : "Selesai" })
+        .eq("id", targetReport.dbId);
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
     if (action === "hide" && targetReport.targetType === "Listing") {
       hideListingByAdmin(targetReport.targetId);
     }
@@ -948,12 +1357,32 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           : r
       )
     );
+    return { ok: true };
   };
 
-  const toggleCodSpot = (spotId: string) => {
+  const toggleCodSpot = async (
+    spotId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const currentSpot = codSpots.find((s) => s.id === spotId);
+    if (!currentSpot) return { ok: false, error: "Spot COD tidak ditemukan." };
+
+    if (authUserId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("cod_spots")
+        .update({ active: !currentSpot.active })
+        .eq("id", spotId);
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
     setCodSpots((prev) =>
       prev.map((s) => (s.id === spotId ? { ...s, active: !s.active } : s))
     );
+    return { ok: true };
   };
 
   const value: MarketplaceContextValue = {

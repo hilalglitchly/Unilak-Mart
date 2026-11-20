@@ -4,9 +4,14 @@ import {
   type CodSpotItem,
   type IllustrationType,
   type ItemCondition,
+  type KtmQueueItem,
   type KtmStatus,
   type NotificationItem,
+  type OrderItem,
+  type OrderStatus,
   type ProductItem,
+  type ProductReview,
+  type ReportItem,
   type UserProfile,
 } from "@/lib/preview-data";
 
@@ -15,6 +20,10 @@ type PublicProfileRow = Database["public"]["Tables"]["public_profiles"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type CodSpotRow = Database["public"]["Tables"]["cod_spots"]["Row"];
 type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
+type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
+type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
+type KtmVerifRow = Database["public"]["Tables"]["ktm_verifications"]["Row"];
+type ReportRow = Database["public"]["Tables"]["reports"]["Row"];
 
 export function mapCardBgClass(raw: string): string {
   if (raw.startsWith("bg-")) return raw;
@@ -34,10 +43,29 @@ export function mapDbCodSpot(row: CodSpotRow): CodSpotItem {
   };
 }
 
+export function mapDbReview(
+  row: ReviewRow,
+  publicProfiles: Map<string, PublicProfileRow>
+): ProductReview {
+  return {
+    id: String(row.id),
+    authorLabel:
+      publicProfiles.get(row.reviewer_id)?.display_name ?? "Mahasiswa Unilak",
+    rating: row.rating,
+    comment: row.comment || "Transaksi COD berjalan lancar.",
+    createdAt: new Date(row.created_at).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+  };
+}
+
 export function mapDbListingToProduct(
   row: ListingRow,
   publicProfiles: Map<string, PublicProfileRow>,
-  spotNameById: Map<string, string>
+  spotNameById: Map<string, string>,
+  reviews?: ProductReview[]
 ): ProductItem {
   const seller = row.seller_id ? publicProfiles.get(row.seller_id) : undefined;
   const codSpotsFromIds = row.cod_spot_ids
@@ -82,6 +110,7 @@ export function mapDbListingToProduct(
     uploadedImages: row.photos,
     createdAt: row.created_at,
     hidden: row.status === "Nonaktif" || row.status === "Disembunyikan",
+    reviews: reviews ?? [],
   };
 }
 
@@ -98,7 +127,87 @@ export function mapDbProfileToUserProfile(row: ProfileRow): UserProfile {
     ktmStatus: row.ktm_status as KtmStatus,
     ktmReason: row.ktm_reason ?? undefined,
     ktmPhotoName: row.ktm_photo_path ?? undefined,
+    systemRole: row.system_role === "admin" ? "admin" : "user",
     deletedAt: row.deleted_at ?? undefined,
+  };
+}
+
+export function mapDbOrder(
+  row: OrderRow,
+  listingSlugById: Map<number, string>,
+  publicProfiles: Map<string, PublicProfileRow>,
+  counterpartyWa: string,
+  userReview?: ReviewRow
+): OrderItem {
+  return {
+    id: String(row.id),
+    dbId: row.id,
+    listingDbId: row.listing_id,
+    buyerId: row.buyer_id,
+    sellerId: row.seller_id,
+    code: row.code,
+    productId: listingSlugById.get(row.listing_id) ?? String(row.listing_id),
+    productTitle: row.listing_title,
+    unitPrice: row.unit_price,
+    quantity: row.quantity,
+    codSpot: row.cod_spot_name,
+    proposedTime: row.proposed_time,
+    note: row.note,
+    status: row.status as OrderStatus,
+    cancelReason: row.cancel_reason ?? undefined,
+    sellerLabel:
+      publicProfiles.get(row.seller_id)?.display_name ?? "Penjual Unilak",
+    sellerWa: counterpartyWa,
+    buyerLabel:
+      publicProfiles.get(row.buyer_id)?.display_name ?? "Pembeli Unilak",
+    createdAt: row.created_at,
+    ratingSubmitted: userReview?.rating,
+    reviewComment: userReview?.comment,
+  };
+}
+
+export function mapDbKtmQueueItem(
+  row: KtmVerifRow,
+  publicProfiles: Map<string, PublicProfileRow>
+): KtmQueueItem {
+  const person = publicProfiles.get(row.user_id);
+  return {
+    id: String(row.id),
+    dbId: row.id,
+    nim: row.identifier_number,
+    name: person?.display_name ?? `NIM ${row.identifier_number}`,
+    prodi: person?.unit_or_prodi ?? "-",
+    faculty: person?.faculty ?? "-",
+    submittedAt: new Date(row.created_at).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    photoLabel: row.photo_path,
+    status: row.status as KtmQueueItem["status"],
+    rejectionReason: row.rejection_reason ?? undefined,
+    photoDeletedNote: row.photo_deleted_at
+      ? "Foto KTM sudah dihapus otomatis dari bucket privat."
+      : undefined,
+  };
+}
+
+export function mapDbReport(row: ReportRow): ReportItem {
+  return {
+    id: String(row.id),
+    dbId: row.id,
+    targetType: row.target_type as ReportItem["targetType"],
+    targetId: row.target_id,
+    targetTitle: row.target_title,
+    reason: row.reason,
+    status: row.status as ReportItem["status"],
+    createdAt: new Date(row.created_at).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   };
 }
 

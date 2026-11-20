@@ -41,9 +41,10 @@ export default function JualPage() {
   );
 
   const [compressedImages, setCompressedImages] = useState<
-    { url: string; originalKb: number; compressedKb: number; name: string }[]
+    { url: string; file: File; originalKb: number; compressedKb: number; name: string }[]
   >([]);
   const [compressing, setCompressing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [formError, setFormError] = useState("");
   const [createdListingId, setCreatedListingId] = useState("");
@@ -65,6 +66,7 @@ export default function JualPage() {
       const batch = files.slice(0, remaining);
       const processed: {
         url: string;
+        file: File;
         originalKb: number;
         compressedKb: number;
         name: string;
@@ -79,6 +81,7 @@ export default function JualPage() {
         const dataUrl = await imageCompression.getDataUrlFromFile(compressed);
         processed.push({
           url: dataUrl,
+          file: compressed,
           originalKb: Math.max(1, Math.round(file.size / 1024)),
           compressedKb: Math.max(1, Math.round(compressed.size / 1024)),
           name: file.name,
@@ -104,7 +107,7 @@ export default function JualPage() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (profile.ktmStatus !== "Terverifikasi") {
       setFormError(
@@ -130,22 +133,33 @@ export default function JualPage() {
       return;
     }
 
-    const created = addListing({
-      title: title.trim(),
-      description: description.trim(),
-      price: numericPrice,
-      condition,
-      stock: alwaysAvailable ? 1 : stock,
-      alwaysAvailable,
-      category,
-      faculty,
-      isUmkm,
-      codSpots: selectedSpots,
-      uploadedImages: compressedImages.map((img) => img.url),
-    });
+    setSubmitting(true);
+    try {
+      const res = await addListing({
+        title: title.trim(),
+        description: description.trim(),
+        price: numericPrice,
+        condition,
+        stock: alwaysAvailable ? 1 : stock,
+        alwaysAvailable,
+        category,
+        faculty,
+        isUmkm,
+        codSpots: selectedSpots,
+        uploadedImages: compressedImages.map((img) => img.url),
+        uploadedFiles: compressedImages.map((img) => img.file),
+      });
 
-    setFormError("");
-    setCreatedListingId(created.id);
+      if (!res.ok || !res.product) {
+        setFormError(res.error ?? "Gagal menerbitkan listing baru.");
+        return;
+      }
+
+      setFormError("");
+      setCreatedListingId(res.product.id);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -502,9 +516,10 @@ export default function JualPage() {
             </Link>
             <button
               type="submit"
-              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-6 py-2.5 text-sm font-bold text-white shadow-[3px_3px_0px_#111827] hover:bg-[#166534]"
+              disabled={submitting}
+              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-6 py-2.5 text-sm font-bold text-white shadow-[3px_3px_0px_#111827] hover:bg-[#166534] disabled:opacity-60"
             >
-              Terbitkan Listing Sekarang
+              {submitting ? "Mengunggah & Menerbitkan..." : "Terbitkan Listing Sekarang"}
             </button>
           </div>
         </form>
