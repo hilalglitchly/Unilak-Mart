@@ -40,7 +40,7 @@ function ListingCard({
 
   if (compact) {
     return (
-      <article className="flex w-[82vw] max-w-[320px] shrink-0 snap-start items-center gap-3 rounded-2xl border-2 border-[#111827] bg-white p-3 transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#111827] md:w-auto md:max-w-none">
+      <article className="flex w-[min(82%,320px)] shrink-0 snap-start items-center gap-3 rounded-2xl border-2 border-[#111827] bg-white p-3 transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#111827] md:w-auto md:max-w-none">
         <Link
           href={`/listing/${item.id}`}
           className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-[#111827] p-2 ${item.cardBg}`}
@@ -91,7 +91,7 @@ function ListingCard({
   }
 
   return (
-    <article className="listing-card-shell flex flex-col justify-between rounded-xl border-2 border-[#111827] bg-white transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#111827] sm:rounded-2xl">
+    <article className="listing-card-shell flex flex-col justify-between rounded-xl border-2 border-[#111827] bg-white transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#111827] active:scale-[0.995] sm:rounded-2xl">
       <div>
         <div
           className={`relative flex h-28 items-center justify-center rounded-t-[10px] border-b-2 border-[#111827] p-2.5 sm:h-44 sm:rounded-t-[14px] sm:p-3 ${item.cardBg}`}
@@ -131,11 +131,7 @@ function ListingCard({
             </svg>
           </button>
 
-          <Link
-            href={`/listing/${item.id}`}
-            className="flex h-full w-full items-center justify-center"
-            aria-label={`Lihat detail ${item.title}`}
-          >
+          <div className="flex h-full w-full items-center justify-center">
             {item.uploadedImages && item.uploadedImages[0] ? (
               <Image
                 unoptimized
@@ -148,7 +144,7 @@ function ListingCard({
             ) : (
               <ProductIllustration type={item.illustration} className="h-20 w-28 sm:h-28 sm:w-40" />
             )}
-          </Link>
+          </div>
         </div>
 
         <div className="listing-card-body space-y-1 sm:space-y-1.5">
@@ -170,7 +166,7 @@ function ListingCard({
           </div>
 
           <h3 className="line-clamp-2 text-[13px] font-extrabold leading-snug text-[#111827] sm:text-base">
-            <Link href={`/listing/${item.id}`} className="hover:underline">
+            <Link href={`/listing/${item.id}`} className="card-link hover:underline">
               {item.title}
             </Link>
           </h3>
@@ -384,8 +380,8 @@ export default function Home() {
         aria-labelledby="judul-hero"
         className="rounded-3xl border-2 border-[#111827] bg-[#F0FDF4] p-5 shadow-[4px_4px_0px_#111827] sm:p-8 lg:p-10"
       >
-        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
-          <div className="space-y-4 lg:col-span-7">
+        <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-12">
+          <div className="space-y-4 md:col-span-7">
             <h1
               id="judul-hero"
               className="text-[clamp(1.6rem,3.6vw,2.85rem)] font-extrabold leading-[1.15] tracking-tight text-[#111827]"
@@ -418,10 +414,10 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="hidden justify-center sm:flex lg:col-span-5">
+          <div className="hidden justify-center md:flex md:col-span-5">
             <svg
               viewBox="0 0 420 340"
-              className="h-auto w-full max-w-[260px] lg:max-w-[360px]"
+              className="h-auto w-full max-w-[250px] lg:max-w-[350px]"
               role="img"
               aria-label="Ilustrasi kartun mahasiswa Unilak membawa tas belanja COD Kampus dan laptop"
             >
@@ -574,7 +570,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
+        <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3">
           {umkmSpotlight.map((item) => (
             <ListingCard
               key={`spotlight-${item.id}`}
@@ -784,7 +780,7 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {filteredProducts.map((item) => (
               <ListingCard
                 key={item.id}

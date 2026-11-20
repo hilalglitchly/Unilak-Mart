@@ -264,6 +264,14 @@ export function ListingDetailClient({ id }: { id: string }) {
             </p>
 
             <div className="flex flex-wrap gap-2 pt-2">
+              {!isSoldOut && !createdOrderCode && (
+                <a
+                  href="#form-ajukan-cod"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534] lg:hidden"
+                >
+                  Ajukan COD Sekarang ({product.priceLabel})
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => toggleSave(product.id)}
@@ -292,7 +300,10 @@ export function ListingDetailClient({ id }: { id: string }) {
           </div>
 
           {/* Form Pesanan COD Langsung */}
-          <div className="rounded-2xl border-2 border-[#111827] bg-white p-6">
+          <div
+            id="form-ajukan-cod"
+            className="rounded-2xl border-2 border-[#111827] bg-white p-6"
+          >
             <h2 className="text-lg font-extrabold text-[#111827]">
               Buat Pesanan &amp; Ajukan Spot COD
             </h2>

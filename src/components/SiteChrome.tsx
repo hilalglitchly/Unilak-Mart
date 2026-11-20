@@ -63,14 +63,15 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
   return (
     <nav
       aria-label="Navigasi bawah mobile"
-      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#111827] bg-white px-2 pt-1 pb-[max(0.45rem,env(safe-area-inset-bottom,0px))] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#111827] bg-white pt-1.5 pr-[max(0.5rem,env(safe-area-inset-right,0px))] pb-[max(0.45rem,env(safe-area-inset-bottom,0px))] pl-[max(0.5rem,env(safe-area-inset-left,0px))] md:hidden"
     >
       <ul className="mx-auto grid max-w-md grid-cols-5 gap-1">
         <li>
           <Link
             href="/"
+            aria-label="Beranda"
             aria-current={pathname === "/" ? "page" : undefined}
-            className={`flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
+            className={`flex min-h-11 items-center justify-center rounded-xl px-1 ${
               pathname === "/"
                 ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
@@ -78,48 +79,48 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
           >
             <svg
               viewBox="0 0 20 20"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.1"
               aria-hidden="true"
             >
               <path d="M3 9.5 10 3l7 6.5V17a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1V9.5Z" />
             </svg>
-            <span>Beranda</span>
           </Link>
         </li>
 
         <li>
           <Link
             href="/#katalog"
+            aria-label="Cari produk"
             onClick={() => {
               if (typeof window !== "undefined" && window.location.pathname === "/") {
                 document.getElementById("cari-produk")?.focus();
               }
             }}
-            className="flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold text-[#111827] hover:bg-[#F0FDF4]"
+            className="flex min-h-11 items-center justify-center rounded-xl px-1 text-[#111827] hover:bg-[#F0FDF4]"
           >
             <svg
               viewBox="0 0 20 20"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.1"
               aria-hidden="true"
             >
               <circle cx="8.5" cy="8.5" r="5.5" />
               <path d="M13 13l4 4" strokeLinecap="round" />
             </svg>
-            <span>Cari</span>
           </Link>
         </li>
 
         <li>
           <Link
             href="/jual"
+            aria-label="Pasang listing"
             aria-current={isActivePath("/jual") ? "page" : undefined}
-            className={`flex min-h-11 flex-col items-center justify-center rounded-xl border-2 border-[#111827] px-1 text-[11px] font-extrabold ${
+            className={`flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] px-1 ${
               isActivePath("/jual")
                 ? "bg-[#15803D] text-white"
                 : "bg-[#FACC15] text-[#111827]"
@@ -127,23 +128,27 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
           >
             <svg
               viewBox="0 0 20 20"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.4"
+              strokeWidth="2.5"
               aria-hidden="true"
             >
               <path d="M10 4v12M4 10h12" strokeLinecap="round" />
             </svg>
-            <span>Jual</span>
           </Link>
         </li>
 
         <li>
           <Link
             href="/pesanan"
+            aria-label={
+              activeOrdersCount > 0
+                ? `Pesanan (${activeOrdersCount} aktif)`
+                : "Pesanan"
+            }
             aria-current={isActivePath("/pesanan") ? "page" : undefined}
-            className={`relative flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
+            className={`relative flex min-h-11 items-center justify-center rounded-xl px-1 ${
               isActivePath("/pesanan")
                 ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
@@ -151,18 +156,20 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
           >
             <svg
               viewBox="0 0 20 20"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.1"
               aria-hidden="true"
             >
               <rect x="4" y="4" width="12" height="13" rx="2" />
               <path d="M7 8h6M7 11.5h4" strokeLinecap="round" />
             </svg>
-            <span>Pesanan</span>
             {activeOrdersCount > 0 && (
-              <span className="absolute top-0.5 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FACC15] px-1 text-[10px] font-extrabold text-[#111827] ring-1 ring-[#111827]">
+              <span
+                aria-hidden="true"
+                className="absolute top-1 right-[calc(50%-18px)] flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FACC15] px-1 text-[10px] font-extrabold text-[#111827] ring-1 ring-[#111827]"
+              >
                 {activeOrdersCount}
               </span>
             )}
@@ -172,8 +179,9 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/profil"
+            aria-label="Profil"
             aria-current={isActivePath("/profil") || isActivePath("/admin") ? "page" : undefined}
-            className={`flex min-h-11 flex-col items-center justify-center rounded-xl px-1 text-[11px] font-bold ${
+            className={`flex min-h-11 items-center justify-center rounded-xl px-1 ${
               isActivePath("/profil") || isActivePath("/admin")
                 ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
@@ -181,16 +189,15 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
           >
             <svg
               viewBox="0 0 20 20"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.1"
               aria-hidden="true"
             >
               <circle cx="10" cy="7" r="3.2" />
               <path d="M4 17a6 6 0 0 1 12 0" strokeLinecap="round" />
             </svg>
-            <span>Profil</span>
           </Link>
         </li>
       </ul>
@@ -234,7 +241,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-white text-[#111827]">
+    <div className="flex min-h-dvh flex-col bg-white text-[#111827]">
       <a
         href="#konten-utama"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:border-2 focus:border-[#111827] focus:bg-[#FACC15] focus:px-4 focus:py-2.5 focus:font-bold focus:text-[#111827]"
@@ -281,10 +288,10 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     <button
                       type="button"
                       onClick={() => setSearchQuery("")}
-                      className="mr-1 min-h-9 min-w-9 rounded-lg px-2 text-xs font-bold text-[#111827] hover:bg-[#E2E8F0]"
+                      className="mr-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold text-[#111827] hover:bg-[#E2E8F0]"
                       aria-label="Hapus kata kunci pencarian"
                     >
-                      Reset
+                      ✕
                     </button>
                   )}
                   <button
@@ -421,38 +428,114 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="flex-1 pb-24 md:pb-0">{children}</div>
+      <div className="flex-1">{children}</div>
 
-      <footer className="border-t-2 border-[#111827] bg-[#F8FAFC] pb-24 md:pb-0">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-3 px-4 py-5 text-xs font-semibold text-[#334155] sm:flex-row sm:items-center sm:px-6 lg:px-10">
-          <p>
-            UnilakMart • Pasar Kampus &amp; Etalase UMKM Mahasiswa Universitas Lancang
-            Kuning (Pratinjau R1).
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <Link
-              href="/#etalase-umkm"
-              className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
-            >
-              Etalase UMKM
-            </Link>
-            <Link
-              href="/#katalog"
-              className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
-            >
-              Katalog
-            </Link>
-            <Link
-              href="/#titik-cod"
-              className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
-            >
-              Titik COD
-            </Link>
+      <footer className="border-t-2 border-[#111827] bg-[#F8FAFC] pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-8">
+        <div className="mx-auto max-w-[1440px] space-y-6 px-4 pt-8 pb-2 sm:px-6 lg:px-10">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2.5">
+              <div className="inline-flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-[#111827] bg-[#15803D] text-sm font-extrabold text-[#FACC15]">
+                  U
+                </span>
+                <span className="text-base font-extrabold tracking-tight text-[#111827]">
+                  unilakmart.id
+                </span>
+              </div>
+              <p className="text-xs font-medium leading-relaxed text-[#334155]">
+                Pasar kampus dan etalase UMKM sivitas Universitas Lancang Kuning.
+                Transaksi tatap muka COD tunai di titik kampus dengan 0% biaya admin.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xs font-extrabold uppercase tracking-wide text-[#111827]">
+                Jelajah Kampus
+              </h2>
+              <ul className="mt-2 space-y-0.5 text-xs font-semibold text-[#334155]">
+                <li>
+                  <Link
+                    href="/#katalog"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    Katalog Kampus
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/#etalase-umkm"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    Etalase UMKM Mahasiswa
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/#titik-cod"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    Titik COD Kampus
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h2 className="text-xs font-extrabold uppercase tracking-wide text-[#111827]">
+                Layanan &amp; Akun
+              </h2>
+              <ul className="mt-2 space-y-0.5 text-xs font-semibold text-[#334155]">
+                <li>
+                  <Link
+                    href="/jual"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    + Pasang Listing
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/pesanan"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    Daftar Pesanan COD
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/profil"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    Profil &amp; Verifikasi KTM
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-2 rounded-2xl border border-[#111827]/25 bg-white p-4">
+              <h2 className="text-xs font-extrabold text-[#14532D]">
+                Aman &amp; Patuh Privasi (UU PDP)
+              </h2>
+              <p className="text-xs font-medium leading-relaxed text-[#334155]">
+                Hanya mahasiswa aktif berstatus Terverifikasi KTM. Dilarang menjual barang
+                ilegal, rokok/vape, maupun jasa joki tugas/skripsi.
+              </p>
+              <p className="text-xs font-medium leading-relaxed text-[#475569]">
+                Nomor WhatsApp dirahasiakan dan baru terbuka setelah status pesanan{" "}
+                <strong className="text-[#111827]">Dijadwalkan</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-start justify-between gap-2 border-t border-[#111827]/15 pt-4 text-xs font-semibold text-[#475569] sm:flex-row sm:items-center">
+            <p>
+              UnilakMart Rilis 1 (Pratinjau MVP) • Universitas Lancang Kuning Pekanbaru.
+            </p>
             <Link
               href="/admin"
               className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
             >
-              Admin
+              Panel Moderasi Admin (Pratinjau)
             </Link>
           </div>
         </div>

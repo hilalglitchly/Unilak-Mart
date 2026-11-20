@@ -123,12 +123,27 @@
   }
   body {
     @apply bg-background text-foreground;
-    overflow-x: clip;
+    overflow-wrap: break-word;
+  }
+  :where(a, code) {
     overflow-wrap: anywhere;
+  }
+  img,
+  svg {
+    max-inline-size: 100%;
   }
   html {
     @apply font-sans scroll-smooth;
-    scroll-padding-top: 5.75rem;
+  }
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-top: 5.75rem;
+    }
   }
   h1,
   h2,
@@ -171,6 +186,33 @@
 
 .listing-card-shell {
   container-type: inline-size;
+  position: relative;
+}
+
+.listing-card-shell a.card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.listing-card-shell:has(a.card-link:focus-visible) {
+  outline: 3px solid #15803d;
+  outline-offset: 2px;
+}
+
+.listing-card-shell a.card-link:focus-visible {
+  outline: none;
+}
+
+.listing-card-shell a:not(.card-link),
+.listing-card-shell button {
+  z-index: 1;
+}
+
+.listing-card-shell a:not(.card-link),
+.listing-card-shell button:not(.absolute) {
+  position: relative;
 }
 
 .listing-card-body {

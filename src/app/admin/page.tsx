@@ -30,7 +30,7 @@ export default function AdminPage() {
   return (
     <main
       id="konten-utama"
-      className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:py-8"
+      className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -67,7 +67,11 @@ export default function AdminPage() {
           </span>
         </div>
 
-        <div role="tablist" aria-label="Filter bagian admin" className="flex flex-wrap gap-1.5">
+        <div
+          role="tablist"
+          aria-label="Filter bagian admin"
+          className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap"
+        >
           {(
             [
               { id: "semua", label: "Semua" },

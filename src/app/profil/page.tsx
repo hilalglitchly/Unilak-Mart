@@ -82,7 +82,7 @@ export default function ProfilPage() {
   return (
     <main
       id="konten-utama"
-      className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:py-8"
+      className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -121,11 +121,11 @@ export default function ProfilPage() {
           )}
         </div>
 
-        <ol className="flex flex-wrap gap-2 text-xs font-bold">
+        <ol className="grid grid-cols-2 gap-2 text-xs font-bold sm:flex sm:flex-wrap">
           {KTM_STATUS_STEPS.map((st) => (
             <li
               key={st}
-              className={`rounded-lg px-2.5 py-1 ${
+              className={`rounded-lg px-2.5 py-1.5 text-center sm:py-1 sm:text-left ${
                 profile.ktmStatus === st
                   ? "bg-[#15803D] text-white"
                   : "bg-white/80 text-[#475569]"

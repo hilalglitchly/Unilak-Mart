@@ -72,7 +72,7 @@ export default function PesananPage() {
   return (
     <main
       id="konten-utama"
-      className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:py-8"
+      className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
@@ -226,14 +226,14 @@ export default function PesananPage() {
                 {/* Stepper Status Ringkas */}
                 <ol
                   aria-label="Linimasa status pesanan"
-                  className="flex flex-wrap items-center gap-2 text-xs font-bold"
+                  className="grid grid-cols-2 gap-2 text-xs font-bold sm:flex sm:flex-wrap sm:items-center"
                 >
                   {TIMELINE_STEPS.map((step, idx) => {
                     const reached = currentStepIdx >= idx;
                     return (
                       <li
                         key={step}
-                        className={`rounded-lg px-2.5 py-1 ${
+                        className={`rounded-lg px-2.5 py-1.5 text-center sm:py-1 sm:text-left ${
                           reached
                             ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#15803D]"
                             : "bg-[#F8FAFC] text-[#64748B]"
@@ -246,7 +246,7 @@ export default function PesananPage() {
                 </ol>
 
                 {/* Tombol Aksi Sesuai Peran & Status */}
-                <div className="flex flex-wrap gap-2 border-t border-[#111827]/15 pt-3">
+                <div className="grid grid-cols-1 gap-2 border-t border-[#111827]/15 pt-3 sm:flex sm:flex-wrap [&>button]:justify-center [&>span]:justify-center">
                   {roleView === "penjual" && order.status === "Menunggu" && (
                     <>
                       <button

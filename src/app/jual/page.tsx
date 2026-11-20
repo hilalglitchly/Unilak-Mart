@@ -151,7 +151,7 @@ export default function JualPage() {
   return (
     <main
       id="konten-utama"
-      className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 lg:py-8"
+      className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
     >
       <div className="space-y-1.5">
         <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
