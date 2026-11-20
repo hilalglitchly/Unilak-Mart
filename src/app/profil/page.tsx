@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
-import { FACULTIES, type KtmStatus } from "@/lib/preview-data";
+import { FACULTIES, formatRupiah, type KtmStatus } from "@/lib/preview-data";
 
 const KTM_STATUS_STEPS: KtmStatus[] = [
   "Belum Verifikasi",
@@ -14,8 +14,17 @@ const KTM_STATUS_STEPS: KtmStatus[] = [
 ];
 
 export default function ProfilPage() {
-  const { profile, updateProfile, submitKtmVerification, deleteOwnAccount } =
-    useMarketplace();
+  const {
+    products,
+    myListingIds,
+    updateMyListing,
+    deleteMyListing,
+    toggleListingStockZero,
+    profile,
+    updateProfile,
+    submitKtmVerification,
+    deleteOwnAccount,
+  } = useMarketplace();
 
   const [nim, setNim] = useState(profile.nim);
   const [name, setName] = useState(profile.name);
@@ -27,6 +36,11 @@ export default function ProfilPage() {
   const [photoName, setPhotoName] = useState(profile.ktmPhotoName ?? "");
   const [formError, setFormError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [listingMessage, setListingMessage] = useState("");
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
+
+  const myListings = products.filter((item) => myListingIds.includes(item.id));
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -94,12 +108,20 @@ export default function ProfilPage() {
           </p>
         </div>
 
-        <Link
-          href="/admin"
-          className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
-        >
-          Panel Admin
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/masuk"
+            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4]"
+          >
+            Masuk / Ganti Akun
+          </Link>
+          <Link
+            href="/admin"
+            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
+          >
+            Panel Admin
+          </Link>
+        </div>
       </div>
 
       {/* Ringkasan Status KTM */}
@@ -367,6 +389,183 @@ export default function ProfilPage() {
           </div>
         </div>
       </form>
+
+      {/* Panel Kelola Listing Penjual */}
+      <section
+        id="listing-saya"
+        aria-labelledby="judul-listing-saya"
+        className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5 sm:p-6"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="judul-listing-saya" className="text-lg font-extrabold text-[#111827]">
+              Listing Saya ({myListings.length})
+            </h2>
+            <p className="text-xs font-medium text-[#475569]">
+              Ubah harga/stok, nonaktifkan sementara, atau tandai terjual.
+            </p>
+          </div>
+          <Link
+            href="/jual"
+            className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#FDE047]"
+          >
+            + Pasang Listing
+          </Link>
+        </div>
+
+        {listingMessage && (
+          <div
+            role="status"
+            className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-bold text-[#14532D]"
+          >
+            {listingMessage}
+          </div>
+        )}
+
+        {myListings.length === 0 ? (
+          <div className="rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-5 text-center text-xs font-semibold text-[#475569]">
+            Belum ada listing yang Anda pasang pada sesi pratinjau ini.
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {myListings.map((item) => {
+              const isSold = !item.alwaysAvailable && item.stock <= 0;
+              const statusText = item.hidden
+                ? "Nonaktif"
+                : isSold
+                  ? "Terjual"
+                  : "Aktif";
+              const priceVal = priceDrafts[item.id] ?? String(item.price);
+              const stockVal = stockDrafts[item.id] ?? String(item.stock);
+
+              return (
+                <li
+                  key={item.id}
+                  className="space-y-3 rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span
+                        className={`inline-block rounded-md border border-[#111827] px-2 py-0.5 text-[11px] font-extrabold ${
+                          statusText === "Aktif"
+                            ? "bg-[#DCFCE7] text-[#14532D]"
+                            : statusText === "Terjual"
+                              ? "bg-[#FEF2F2] text-[#991B1B]"
+                              : "bg-white text-[#475569]"
+                        }`}
+                      >
+                        {statusText}
+                      </span>
+                      <h3 className="mt-1 text-sm font-extrabold text-[#111827]">
+                        <Link href={`/listing/${item.id}`} className="hover:underline">
+                          {item.title}
+                        </Link>
+                      </h3>
+                      <p className="text-xs font-semibold text-[#475569]">
+                        {formatRupiah(item.price)} •{" "}
+                        {item.alwaysAvailable ? "Selalu tersedia" : `Stok: ${item.stock}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:items-end">
+                    <div>
+                      <label
+                        htmlFor={`harga-${item.id}`}
+                        className="block text-[11px] font-bold text-[#334155]"
+                      >
+                        Ubah Harga (Rp)
+                      </label>
+                      <input
+                        id={`harga-${item.id}`}
+                        type="number"
+                        min={0}
+                        value={priceVal}
+                        onChange={(e) =>
+                          setPriceDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        }
+                        className="mt-1 min-h-11 w-full rounded-xl border border-[#111827] bg-white px-2.5 text-sm font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor={`stok-${item.id}`}
+                        className="block text-[11px] font-bold text-[#334155]"
+                      >
+                        Ubah Stok
+                      </label>
+                      <input
+                        id={`stok-${item.id}`}
+                        type="number"
+                        min={0}
+                        value={stockVal}
+                        onChange={(e) =>
+                          setStockDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        }
+                        className="mt-1 min-h-11 w-full rounded-xl border border-[#111827] bg-white px-2.5 text-sm font-bold"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateMyListing(item.id, {
+                          price: Number(priceVal) || 0,
+                          stock: Math.max(0, Number(stockVal) || 0),
+                        });
+                        setListingMessage(`Perubahan harga/stok "${item.title}" disimpan.`);
+                      }}
+                      className="col-span-2 min-h-11 rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7] sm:col-span-1"
+                    >
+                      Simpan Angka
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleListingStockZero(item.id);
+                        setListingMessage(
+                          isSold
+                            ? `"${item.title}" diaktifkan kembali dengan stok 1.`
+                            : `"${item.title}" ditandai Terjual (stok 0).`
+                        );
+                      }}
+                      className="min-h-11 rounded-xl border-2 border-[#111827] bg-[#15803D] px-3.5 text-xs font-bold text-white"
+                    >
+                      {isSold ? "Aktifkan Stok (1)" : "Tandai Terjual"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateMyListing(item.id, { hidden: !item.hidden });
+                        setListingMessage(
+                          item.hidden
+                            ? `"${item.title}" ditayangkan kembali di katalog.`
+                            : `"${item.title}" dinonaktifkan sementara.`
+                        );
+                      }}
+                      className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-3.5 text-xs font-bold text-[#111827]"
+                    >
+                      {item.hidden ? "Tayangkan Kembali" : "Nonaktifkan"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteMyListing(item.id);
+                        setListingMessage(`Listing "${item.title}" dihapus dari pratinjau.`);
+                      }}
+                      className="min-h-11 rounded-xl border border-[#991B1B]/60 bg-white px-3.5 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
+                    >
+                      Hapus Listing
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* Dialog Hapus Akun Mandiri */}
       <ModalDialog

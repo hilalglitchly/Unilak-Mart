@@ -10,9 +10,11 @@ import {
 import {
   INITIAL_COD_SPOTS,
   INITIAL_KTM_QUEUE,
+  INITIAL_MY_LISTING_IDS,
   INITIAL_NOTIFICATIONS,
   INITIAL_ORDERS,
   INITIAL_PROFILE,
+  INITIAL_REGISTERED_NIMS,
   INITIAL_REPORTS,
   SAMPLE_PRODUCTS,
   formatRupiah,
@@ -67,12 +69,28 @@ interface MarketplaceContextValue {
   updateOrderStatus: (orderId: string, nextStatus: OrderStatus, cancelReason?: string) => void;
   addOrderReview: (orderId: string, rating: number, comment: string) => void;
   addListing: (input: NewListingInput) => ProductItem;
+  myListingIds: string[];
+  updateMyListing: (
+    productId: string,
+    patch: { price?: number; stock?: number; hidden?: boolean }
+  ) => void;
+  deleteMyListing: (productId: string) => void;
   toggleListingStockZero: (productId: string) => void;
   hideListingByAdmin: (productId: string) => void;
   notifications: NotificationItem[];
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   profile: UserProfile;
+  loginPreviewAccount: (input: { identifier: string }) => { ok: boolean; error?: string };
+  registerPreviewAccount: (input: {
+    nim: string;
+    name: string;
+    faculty: string;
+    prodi: string;
+    email: string;
+    wa: string;
+    pdpConsent: boolean;
+  }) => { ok: boolean; error?: string };
   updateProfile: (patch: Partial<UserProfile>) => void;
   submitKtmVerification: (input: {
     nim: string;
@@ -103,6 +121,8 @@ const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
 
 export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<ProductItem[]>(SAMPLE_PRODUCTS);
+  const [myListingIds, setMyListingIds] = useState<string[]>(INITIAL_MY_LISTING_IDS);
+  const [registeredNims, setRegisteredNims] = useState<string[]>(INITIAL_REGISTERED_NIMS);
   const [savedIds, setSavedIds] = useState<string[]>(["kopi-risol-umkm"]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CategoryId>("semua");
@@ -305,12 +325,41 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     };
 
     setProducts((prev) => [created, ...prev]);
+    setMyListingIds((prev) => [created.id, ...prev]);
     pushNotification(
       "Listing Baru Tayang",
       `${created.title} langsung terbit di katalog UnilakMart.`,
       `/listing/${created.id}`
     );
     return created;
+  };
+
+  const updateMyListing = (
+    productId: string,
+    patch: { price?: number; stock?: number; hidden?: boolean }
+  ) => {
+    setProducts((prev) =>
+      prev.map((item) => {
+        if (item.id !== productId) return item;
+        const nextPrice =
+          typeof patch.price === "number" ? Math.max(0, patch.price) : item.price;
+        const nextStock =
+          typeof patch.stock === "number" ? Math.max(0, patch.stock) : item.stock;
+        return {
+          ...item,
+          price: nextPrice,
+          priceLabel: formatRupiah(nextPrice),
+          stock: nextStock,
+          alwaysAvailable: nextStock > 0 ? item.alwaysAvailable : false,
+          hidden: typeof patch.hidden === "boolean" ? patch.hidden : item.hidden,
+        };
+      })
+    );
+  };
+
+  const deleteMyListing = (productId: string) => {
+    setProducts((prev) => prev.filter((item) => item.id !== productId));
+    setMyListingIds((prev) => prev.filter((id) => id !== productId));
   };
 
   const toggleListingStockZero = (productId: string) => {
@@ -347,6 +396,76 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = (patch: Partial<UserProfile>) => {
     setProfile((prev) => ({ ...prev, ...patch }));
+  };
+
+  const loginPreviewAccount = (input: { identifier: string }) => {
+    const clean = input.identifier.trim();
+    if (!clean) {
+      return { ok: false, error: "Masukkan NIM atau email Unilak yang terdaftar." };
+    }
+    const isEmail = clean.includes("@");
+    setProfile((prev) => ({
+      ...prev,
+      nim: isEmail ? prev.nim || "2255201045" : clean,
+      email: isEmail ? clean : prev.email || `${clean}@student.unilak.ac.id`,
+      name:
+        prev.deletedAt || !prev.name
+          ? "Mahasiswa Unilak (Pratinjau)"
+          : prev.name,
+      ktmStatus: prev.deletedAt ? "Terverifikasi" : prev.ktmStatus,
+      deletedAt: undefined,
+    }));
+    pushNotification(
+      "Masuk Akun Berhasil (Mode Pratinjau)",
+      `Sesi pratinjau aktif untuk ${clean}.`,
+      "/profil"
+    );
+    return { ok: true };
+  };
+
+  const registerPreviewAccount = (input: {
+    nim: string;
+    name: string;
+    faculty: string;
+    prodi: string;
+    email: string;
+    wa: string;
+    pdpConsent: boolean;
+  }) => {
+    const cleanNim = input.nim.trim();
+    if (registeredNims.includes(cleanNim)) {
+      return {
+        ok: false,
+        error:
+          "NIM ini sudah dipakai pada akun lain. Satu NIM hanya diperbolehkan untuk satu akun.",
+      };
+    }
+    if (!input.pdpConsent) {
+      return {
+        ok: false,
+        error:
+          "Persetujuan UU PDP wajib dicentang sebelum mendaftarkan akun UnilakMart.",
+      };
+    }
+    setRegisteredNims((prev) => [...prev, cleanNim]);
+    setProfile({
+      nim: cleanNim,
+      name: input.name.trim(),
+      faculty: input.faculty,
+      prodi: input.prodi.trim(),
+      email: input.email.trim(),
+      wa: input.wa.trim(),
+      pdpConsent: true,
+      isUmkm: false,
+      ktmStatus: "Belum Verifikasi",
+      ktmPhotoName: "",
+    });
+    pushNotification(
+      "Pendaftaran Berhasil & Email Verifikasi Terkirim",
+      "Lanjutkan unggah foto KTM di halaman Profil agar akun menjadi Terverifikasi.",
+      "/profil"
+    );
+    return { ok: true };
   };
 
   const submitKtmVerification = (input: {
@@ -543,12 +662,17 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     updateOrderStatus,
     addOrderReview,
     addListing,
+    myListingIds,
+    updateMyListing,
+    deleteMyListing,
     toggleListingStockZero,
     hideListingByAdmin,
     notifications,
     markNotificationRead,
     markAllNotificationsRead,
     profile,
+    loginPreviewAccount,
+    registerPreviewAccount,
     updateProfile,
     submitKtmVerification,
     deleteOwnAccount,

@@ -436,6 +436,13 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 Titik COD Kampus
               </Link>
               <Link
+                href="/masuk"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-white"
+              >
+                Masuk / Daftar Akun
+              </Link>
+              <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#15803D] hover:bg-white"
@@ -526,6 +533,14 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
                     Profil &amp; Verifikasi KTM
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/masuk"
+                    className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+                  >
+                    Masuk / Daftar Akun
                   </Link>
                 </li>
               </ul>

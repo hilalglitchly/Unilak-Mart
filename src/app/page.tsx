@@ -696,6 +696,20 @@ export default function Home() {
                 );
               })}
             </div>
+            {hasActiveFilters && (
+              <div className="mt-1.5 flex items-center justify-between gap-2 text-xs font-bold text-[#14532D]">
+                <span>
+                  Filter aktif: menampilkan {filteredProducts.length} listing
+                </span>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex min-h-9 items-center rounded-lg border border-[#111827]/40 bg-[#F0FDF4] px-2.5 text-xs font-extrabold text-[#111827] hover:bg-[#DCFCE7]"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
