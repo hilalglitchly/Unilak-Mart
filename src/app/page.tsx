@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModalDialog, ProductIllustration } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import {
@@ -233,6 +233,43 @@ export default function Home() {
   const [selectedCondition, setSelectedCondition] = useState<"semua" | ItemCondition>("semua");
   const [sortBy, setSortBy] = useState<SortOption>("terbaru");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const stickyCatRef = useRef<HTMLDivElement>(null);
+  const katalogGridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = stickyCatRef.current;
+    if (!el || typeof CSS === "undefined" || CSS.supports("container-type", "scroll-state")) {
+      return;
+    }
+
+    const setupObserver = () => {
+      const topOffset = parseFloat(getComputedStyle(el).top) || 0;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          const isStuck = entry.intersectionRatio < 1 && entry.boundingClientRect.top <= topOffset + 2;
+          el.dataset.stuck = isStuck ? "true" : "false";
+        },
+        {
+          threshold: [1],
+          rootMargin: `-${topOffset + 1}px 0px 0px 0px`,
+        }
+      );
+      obs.observe(el);
+      return obs;
+    };
+
+    let obs = setupObserver();
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      obs.disconnect();
+      obs = setupObserver();
+    };
+    mq.addEventListener("change", onChange);
+    return () => {
+      obs.disconnect();
+      mq.removeEventListener("change", onChange);
+    };
+  }, []);
 
   const [codProduct, setCodProduct] = useState<ProductItem | null>(null);
   const [codSpotChoice, setCodSpotChoice] = useState("");
@@ -305,6 +342,21 @@ export default function Home() {
 
     setCodError("");
     setCodSuccessCode(result.order?.code ?? "UM-BARU");
+  };
+
+  const handleCategoryChange = (catId: CategoryId) => {
+    setActiveCategory(catId);
+    setOnlySaved(false);
+    if (stickyCatRef.current && katalogGridRef.current) {
+      const stickyRect = stickyCatRef.current.getBoundingClientRect();
+      const gridRect = katalogGridRef.current.getBoundingClientRect();
+      if (gridRect.top < stickyRect.bottom + 12) {
+        window.scrollBy({
+          top: gridRect.top - stickyRect.bottom - 16,
+          behavior: "smooth",
+        });
+      }
+    }
   };
 
   const selectCategoryAndScroll = (category: CategoryId) => {
@@ -584,8 +636,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 3: KATALOG UTAMA + KATEGORI + FILTER TERSTRUKTUR */}
-      <section id="katalog" aria-labelledby="judul-katalog" className="space-y-5">
+      {/* SECTION 3: KATALOG UTAMA + KATEGORI LENGKET + FILTER TERSTRUKTUR */}
+      <section
+        id="katalog"
+        aria-labelledby="judul-katalog"
+        className="katalog-sticky-scope space-y-5"
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-[#111827]/15 pb-3">
           <div>
             <h2
@@ -610,33 +666,37 @@ export default function Home() {
           )}
         </div>
 
-        {/* Baris Pill Kategori */}
+        {/* Baris Pill Kategori Lengket Saat Scroll */}
         <div
-          role="toolbar"
-          aria-label="Filter kategori katalog"
-          className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+          ref={stickyCatRef}
+          className="category-sticky-bar -mx-4 sm:-mx-6 lg:-mx-10"
         >
-          {CATEGORIES.map((cat) => {
-            const isSelected = activeCategory === cat.id && !onlySaved;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => {
-                  setActiveCategory(cat.id);
-                  setOnlySaved(false);
-                }}
-                aria-pressed={isSelected}
-                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors active:translate-x-[1px] active:translate-y-[1px] sm:text-sm ${
-                  isSelected
-                    ? "border-2 border-[#111827] bg-[#15803D] text-white"
-                    : "border border-[#111827]/35 bg-white text-[#111827] hover:border-[#111827] hover:bg-[#F0FDF4]"
-                }`}
-              >
-                {cat.label}
-              </button>
-            );
-          })}
+          <div className="category-sticky-inner px-4 py-2 sm:px-6 lg:px-10">
+            <div
+              role="toolbar"
+              aria-label="Filter kategori katalog"
+              className="category-scroll-strip flex flex-nowrap items-center gap-2 pb-0.5"
+            >
+              {CATEGORIES.map((cat) => {
+                const isSelected = activeCategory === cat.id && !onlySaved;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategoryChange(cat.id)}
+                    aria-pressed={isSelected}
+                    className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-3 py-2 text-xs font-bold transition-colors active:translate-x-[1px] active:translate-y-[1px] xl:px-3.5 xl:text-[13px] ${
+                      isSelected
+                        ? "border-2 border-[#111827] bg-[#15803D] text-white"
+                        : "border border-[#111827]/35 bg-white text-[#111827] hover:border-[#111827] hover:bg-[#F0FDF4]"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Filter Fakultas, Kondisi, Urutkan & Disimpan (sebaris bersih) */}
@@ -780,7 +840,10 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
+          <div
+            ref={katalogGridRef}
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5"
+          >
             {filteredProducts.map((item) => (
               <ListingCard
                 key={item.id}

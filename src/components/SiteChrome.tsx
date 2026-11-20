@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 
@@ -222,6 +222,22 @@ export function SiteChrome({ children }: { children: ReactNode }) {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const headerEl = headerRef.current;
+    if (!headerEl) return;
+
+    const syncHeaderHeight = () => {
+      const h = Math.ceil(headerEl.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--site-header-height", `${h}px`);
+    };
+
+    syncHeaderHeight();
+    const ro = new ResizeObserver(syncHeaderHeight);
+    ro.observe(headerEl);
+    return () => ro.disconnect();
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const activeOrdersCount = orders.filter(
@@ -250,7 +266,10 @@ export function SiteChrome({ children }: { children: ReactNode }) {
       </a>
 
       {/* Header satu baris bersih di desktop, ringkas di mobile */}
-      <header className="border-b-2 border-[#111827] bg-white lg:sticky lg:top-0 lg:z-40">
+      <header
+        ref={headerRef}
+        className="border-b-2 border-[#111827] bg-white lg:sticky lg:top-0 lg:z-40"
+      >
         <div className="mx-auto max-w-[1440px] px-4 py-2.5 sm:px-6 lg:px-10">
           <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
             <Link
