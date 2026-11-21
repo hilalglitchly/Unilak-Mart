@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
+import { PasswordInput } from "@/components/PasswordInput";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   FACULTIES,
@@ -31,7 +32,8 @@ function RecoveryModeNotice() {
 function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [pwdError, setPwdError] = useState("");
   const [pwdNotice, setPwdNotice] = useState("");
   const [saving, setSaving] = useState(false);
@@ -112,9 +114,12 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
             >
               Kata Sandi Baru (min. 8 karakter)
             </label>
-            <input
+            <PasswordInput
               id="profil-pwd-baru"
-              type={showPwd ? "text" : "password"}
+              visible={showNewPwd}
+              onToggleVisible={() => setShowNewPwd((v) => !v)}
+              toggleShowLabel="Tampilkan kata sandi baru"
+              toggleHideLabel="Sembunyikan kata sandi baru"
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => {
@@ -122,7 +127,7 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
                 setPwdError("");
               }}
               placeholder="Minimal 8 karakter"
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+              className="font-medium"
             />
           </div>
           <div>
@@ -132,9 +137,12 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
             >
               Ulangi Kata Sandi Baru
             </label>
-            <input
+            <PasswordInput
               id="profil-pwd-konfirm"
-              type={showPwd ? "text" : "password"}
+              visible={showConfirmPwd}
+              onToggleVisible={() => setShowConfirmPwd((v) => !v)}
+              toggleShowLabel="Tampilkan konfirmasi kata sandi"
+              toggleHideLabel="Sembunyikan konfirmasi kata sandi"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => {
@@ -142,20 +150,12 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
                 setPwdError("");
               }}
               placeholder="Ketik ulang kata sandi baru"
-              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+              className="font-medium"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setShowPwd((v) => !v)}
-            className="min-h-11 rounded-xl border border-[#111827]/30 bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827]"
-          >
-            {showPwd ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
-          </button>
-
+        <div className="flex justify-end">
           <button
             type="submit"
             disabled={saving}

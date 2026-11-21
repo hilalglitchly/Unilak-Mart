@@ -9,6 +9,7 @@ import {
   signUpStudentAction,
 } from "@/app/masuk/actions";
 import { useMarketplace } from "@/components/MarketplaceProvider";
+import { PasswordInput } from "@/components/PasswordInput";
 import { FACULTIES } from "@/lib/preview-data";
 
 type AuthMode = "masuk" | "daftar" | "reset";
@@ -328,37 +329,25 @@ export default function MasukPage() {
                 Lupa kata sandi?
               </button>
             </div>
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                ref={loginPwdRef}
-                id="login-password"
-                name="password"
-                type={showLoginPwd ? "text" : "password"}
-                autoComplete="current-password"
-                enterKeyHint="done"
-                required
-                aria-invalid={Boolean(loginError)}
-                aria-describedby={loginError ? "login-error-msg" : undefined}
-                value={loginPassword}
-                onChange={(e) => {
-                  setLoginPassword(e.target.value);
-                  setLoginError("");
-                }}
-                placeholder="Minimal 6 karakter"
-                className="min-h-11 min-w-0 flex-1 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium text-[#111827] sm:text-sm"
-              />
-              <button
-                type="button"
-                aria-pressed={showLoginPwd}
-                aria-label={
-                  showLoginPwd ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
-                }
-                onClick={() => setShowLoginPwd((prev) => !prev)}
-                className="min-h-11 shrink-0 rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827]"
-              >
-                {showLoginPwd ? "Tutup" : "Lihat"}
-              </button>
-            </div>
+            <PasswordInput
+              ref={loginPwdRef}
+              id="login-password"
+              name="password"
+              visible={showLoginPwd}
+              onToggleVisible={() => setShowLoginPwd((prev) => !prev)}
+              autoComplete="current-password"
+              enterKeyHint="done"
+              required
+              aria-invalid={Boolean(loginError)}
+              aria-describedby={loginError ? "login-error-msg" : undefined}
+              value={loginPassword}
+              onChange={(e) => {
+                setLoginPassword(e.target.value);
+                setLoginError("");
+              }}
+              placeholder="Minimal 6 karakter"
+              className="font-medium"
+            />
           </div>
 
           {loginError && (
@@ -580,37 +569,27 @@ export default function MasukPage() {
             >
               Kata Sandi <span aria-hidden="true">*</span>
             </label>
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                ref={regPwdRef}
-                id="reg-password"
-                name="new_password"
-                type={showRegPwd ? "text" : "password"}
-                autoComplete="new-password"
-                minLength={8}
-                aria-invalid={Boolean(regError)}
-                aria-describedby="hint-reg-pwd"
-                required
-                value={regPassword}
-                onChange={(e) => {
-                  setRegPassword(e.target.value);
-                  setRegError("");
-                }}
-                placeholder="Minimal 8 karakter"
-                className="min-h-11 min-w-0 flex-1 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
-              />
-              <button
-                type="button"
-                aria-pressed={showRegPwd}
-                aria-label={
-                  showRegPwd ? "Sembunyikan kata sandi baru" : "Tampilkan kata sandi baru"
-                }
-                onClick={() => setShowRegPwd((prev) => !prev)}
-                className="min-h-11 shrink-0 rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827]"
-              >
-                {showRegPwd ? "Tutup" : "Lihat"}
-              </button>
-            </div>
+            <PasswordInput
+              ref={regPwdRef}
+              id="reg-password"
+              name="new_password"
+              visible={showRegPwd}
+              onToggleVisible={() => setShowRegPwd((prev) => !prev)}
+              toggleShowLabel="Tampilkan kata sandi baru"
+              toggleHideLabel="Sembunyikan kata sandi baru"
+              autoComplete="new-password"
+              minLength={8}
+              aria-invalid={Boolean(regError)}
+              aria-describedby="hint-reg-pwd"
+              required
+              value={regPassword}
+              onChange={(e) => {
+                setRegPassword(e.target.value);
+                setRegError("");
+              }}
+              placeholder="Minimal 8 karakter"
+              className="font-semibold"
+            />
             <p id="hint-reg-pwd" className="mt-1 text-[11px] font-medium text-[#475569]">
               Gunakan 8 karakter atau lebih. Tempel kata sandi dari pengelola sandi didukung.
             </p>
