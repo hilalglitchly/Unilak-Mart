@@ -34,7 +34,7 @@ export function PasswordInput({
         aria-pressed={visible}
         aria-label={visible ? toggleHideLabel : toggleShowLabel}
         onClick={onToggleVisible}
-        className="absolute inset-y-[2px] right-[2px] flex w-11 items-center justify-center rounded-r-[10px] text-[#334155] transition-colors hover:bg-[#F8FAFC] hover:text-[#111827] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#111827]"
+        className="absolute inset-y-[2px] right-[2px] flex w-11 items-center justify-center rounded-r-[10px] text-[#334155] transition-colors hover:bg-[#F8FAFC] hover:text-[#111827] focus-visible:outline-2 focus-visible:outline-offset-1"
       >
         {visible ? (
           <EyeOff className="h-5 w-5" aria-hidden="true" />

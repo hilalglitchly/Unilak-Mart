@@ -5,8 +5,10 @@ import { useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import {
+  EN_ORDER_STATUS_LABELS,
   buildWhatsAppUrl,
   formatRupiah,
+  getDisplayLabel,
   type OrderItem,
   type OrderStatus,
 } from "@/lib/preview-data";
@@ -35,8 +37,9 @@ function getStatusBadgeClass(status: OrderStatus): string {
 }
 
 export default function PesananPage() {
-  const { authUserId, orders, updateOrderStatus, addOrderReview, submitReport } =
+  const { authUserId, orders, updateOrderStatus, addOrderReview, submitReport, locale } =
     useMarketplace();
+  const isEn = locale === "en";
 
   const [roleView, setRoleView] = useState<"pembeli" | "penjual">("pembeli");
   const [actionError, setActionError] = useState("");
@@ -66,10 +69,17 @@ export default function PesananPage() {
     setActionNotice("");
     const res = await updateOrderStatus(orderId, nextStatus, reason);
     if (!res.ok) {
-      setActionError(res.error ?? "Gagal memperbarui status pesanan.");
+      setActionError(
+        res.error ??
+          (isEn ? "Failed to update order status." : "Gagal memperbarui status pesanan.")
+      );
       return false;
     }
-    setActionNotice(`Status pesanan diperbarui menjadi ${nextStatus}.`);
+    setActionNotice(
+      isEn
+        ? `Order status updated to ${getDisplayLabel(locale, nextStatus, EN_ORDER_STATUS_LABELS)}.`
+        : `Status pesanan diperbarui menjadi ${nextStatus}.`
+    );
     return true;
   };
 
@@ -77,7 +87,11 @@ export default function PesananPage() {
     e.preventDefault();
     if (!cancelTarget) return;
     if (!cancelReason.trim()) {
-      setCancelError("Alasan pembatalan wajib diisi sebelum membatalkan pesanan.");
+      setCancelError(
+        isEn
+          ? "Cancellation reason is required before cancelling an order."
+          : "Alasan pembatalan wajib diisi sebelum membatalkan pesanan."
+      );
       return;
     }
     const ok = await runOrderTransition(
@@ -86,7 +100,9 @@ export default function PesananPage() {
       cancelReason.trim()
     );
     if (!ok) {
-      setCancelError("Pembatalan ditolak oleh server.");
+      setCancelError(
+        isEn ? "Cancellation rejected by server." : "Pembatalan ditolak oleh server."
+      );
       return;
     }
     setCancelTarget(null);
@@ -99,10 +115,14 @@ export default function PesananPage() {
     if (!reviewTarget) return;
     const res = await addOrderReview(reviewTarget.id, rating, reviewText.trim());
     if (!res.ok) {
-      setActionError(res.error ?? "Gagal menyimpan ulasan.");
+      setActionError(
+        res.error ?? (isEn ? "Failed to save review." : "Gagal menyimpan ulasan.")
+      );
       return;
     }
-    setActionNotice("Ulasan transaksi COD tersimpan.");
+    setActionNotice(
+      isEn ? "COD transaction review saved." : "Ulasan transaksi COD tersimpan."
+    );
     setReviewTarget(null);
     setRating(5);
     setReviewText("");
@@ -116,17 +136,26 @@ export default function PesananPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
-            Daftar Pesanan COD Kampus
+            {isEn ? "Campus COD Orders" : "Daftar Pesanan COD Kampus"}
           </h1>
           <p className="text-sm font-medium text-[#475569]">
-            Tombol <strong>Hubungi via WhatsApp</strong> terbuka otomatis setelah jadwal
-            COD disetujui penjual (status <strong>Dijadwalkan</strong>).
+            {isEn ? (
+              <>
+                The <strong>Contact via WhatsApp</strong> button unlocks automatically once
+                the seller approves the COD schedule (status <strong>Scheduled</strong>).
+              </>
+            ) : (
+              <>
+                Tombol <strong>Hubungi via WhatsApp</strong> terbuka otomatis setelah jadwal
+                COD disetujui penjual (status <strong>Dijadwalkan</strong>).
+              </>
+            )}
           </p>
         </div>
 
         <div
           role="tablist"
-          aria-label="Sudut pandang pesanan"
+          aria-label={isEn ? "Order perspective" : "Sudut pandang pesanan"}
           className="inline-flex rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-1"
         >
           <button
@@ -140,7 +169,13 @@ export default function PesananPage() {
                 : "text-[#111827]"
             }`}
           >
-            {authUserId ? "Pesanan Saya" : "Mode Pembeli"}
+            {authUserId
+              ? isEn
+                ? "My Orders"
+                : "Pesanan Saya"
+              : isEn
+                ? "Buyer View"
+                : "Mode Pembeli"}
           </button>
           <button
             type="button"
@@ -153,7 +188,13 @@ export default function PesananPage() {
                 : "text-[#111827]"
             }`}
           >
-            {authUserId ? "Pesanan Masuk" : "Simulasi Penjual"}
+            {authUserId
+              ? isEn
+                ? "Incoming Orders"
+                : "Pesanan Masuk"
+              : isEn
+                ? "Seller Simulation"
+                : "Simulasi Penjual"}
           </button>
         </div>
       </div>
@@ -163,7 +204,7 @@ export default function PesananPage() {
           role="alert"
           className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3.5 text-xs font-bold text-[#991B1B]"
         >
-          Perhatian: {actionError}
+          {isEn ? "Notice:" : "Perhatian:"} {actionError}
         </div>
       )}
 
@@ -179,18 +220,22 @@ export default function PesananPage() {
       {visibleOrders.length === 0 ? (
         <div className="rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-8 text-center">
           <h2 className="text-lg font-extrabold text-[#111827]">
-            Belum ada pesanan COD
+            {isEn ? "No COD orders yet" : "Belum ada pesanan COD"}
           </h2>
           <p className="mt-2 text-sm font-medium text-[#334155]">
             {authUserId && roleView === "penjual"
-              ? "Belum ada permintaan COD masuk untuk listing milik Anda."
-              : "Jelajahi katalog dan ajukan jadwal COD di titik kampus terdekat."}
+              ? isEn
+                ? "No incoming COD requests for your listings yet."
+                : "Belum ada permintaan COD masuk untuk listing milik Anda."
+              : isEn
+                ? "Browse the catalog and request a COD meetup at the nearest campus spot."
+                : "Jelajahi katalog dan ajukan jadwal COD di titik kampus terdekat."}
           </p>
           <Link
             href="/"
             className="mt-4 inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white"
           >
-            Cari Barang di Katalog
+            {isEn ? "Browse Catalog" : "Cari Barang di Katalog"}
           </Link>
         </div>
       ) : (
@@ -219,7 +264,7 @@ export default function PesananPage() {
                       <span
                         className={`rounded-md border border-[#111827] px-2.5 py-0.5 text-xs font-extrabold ${getStatusBadgeClass(order.status)}`}
                       >
-                        {order.status}
+                        {getDisplayLabel(locale, order.status, EN_ORDER_STATUS_LABELS)}
                       </span>
                     </div>
                     <h2 className="mt-1.5 text-lg font-extrabold text-[#111827]">
@@ -228,9 +273,9 @@ export default function PesananPage() {
                       </Link>
                     </h2>
                     <p className="text-xs font-semibold text-[#475569]">
-                      {order.quantity}x • Total Tunai:{" "}
+                      {order.quantity}x • {isEn ? "Cash Total:" : "Total Tunai:"}{" "}
                       <strong className="text-[#15803D]">
-                        {formatRupiah(order.unitPrice * order.quantity)}
+                        {formatRupiah(order.unitPrice * order.quantity, locale)}
                       </strong>{" "}
                       • {roleView === "pembeli" ? order.sellerLabel : order.buyerLabel}
                     </p>
@@ -249,13 +294,17 @@ export default function PesananPage() {
                         rel="noopener noreferrer"
                         className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white hover:bg-[#166534]"
                       >
-                        Hubungi via WhatsApp
+                        {isEn ? "Contact via WhatsApp" : "Hubungi via WhatsApp"}
                       </a>
                     ) : (
                       <span className="inline-flex min-h-11 items-center rounded-xl border border-[#111827]/25 bg-[#F8FAFC] px-3.5 py-2 text-xs font-bold text-[#475569]">
                         {order.status === "Selesai"
-                          ? "Transaksi selesai (kontak ditutup)"
-                          : "WhatsApp terkunci sebelum status Dijadwalkan"}
+                          ? isEn
+                            ? "Transaction completed (contact closed)"
+                            : "Transaksi selesai (kontak ditutup)"
+                          : isEn
+                            ? "WhatsApp locked until Scheduled"
+                            : "WhatsApp terkunci sebelum status Dijadwalkan"}
                       </span>
                     )}
                   </div>
@@ -264,15 +313,21 @@ export default function PesananPage() {
                 {/* Info Spot & Jadwal ringkas */}
                 <div className="grid grid-cols-1 gap-2 rounded-xl border border-[#111827]/20 bg-[#F8FAFC] p-3 text-xs sm:grid-cols-3">
                   <div>
-                    <span className="font-bold text-[#475569]">Spot COD: </span>
+                    <span className="font-bold text-[#475569]">
+                      {isEn ? "COD Spot: " : "Spot COD: "}
+                    </span>
                     <span className="font-bold text-[#111827]">{order.codSpot}</span>
                   </div>
                   <div>
-                    <span className="font-bold text-[#475569]">Jadwal: </span>
+                    <span className="font-bold text-[#475569]">
+                      {isEn ? "Schedule: " : "Jadwal: "}
+                    </span>
                     <span className="font-bold text-[#111827]">{order.proposedTime}</span>
                   </div>
                   <div>
-                    <span className="font-bold text-[#475569]">Catatan: </span>
+                    <span className="font-bold text-[#475569]">
+                      {isEn ? "Note: " : "Catatan: "}
+                    </span>
                     <span className="font-medium text-[#111827]">
                       {order.note || "-"}
                     </span>
@@ -281,13 +336,15 @@ export default function PesananPage() {
 
                 {order.cancelReason && (
                   <p className="rounded-xl border border-[#991B1B] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#991B1B]">
-                    Dibatalkan: {order.cancelReason} (stok dikembalikan)
+                    {isEn
+                      ? `Cancelled: ${order.cancelReason} (stock restored)`
+                      : `Dibatalkan: ${order.cancelReason} (stok dikembalikan)`}
                   </p>
                 )}
 
                 {/* Stepper Status Ringkas */}
                 <ol
-                  aria-label="Linimasa status pesanan"
+                  aria-label={isEn ? "Order status timeline" : "Linimasa status pesanan"}
                   className="grid grid-cols-2 gap-2 text-xs font-bold sm:flex sm:flex-wrap sm:items-center"
                 >
                   {TIMELINE_STEPS.map((step, idx) => {
@@ -301,7 +358,7 @@ export default function PesananPage() {
                             : "bg-[#F8FAFC] text-[#64748B]"
                         }`}
                       >
-                        {idx + 1}. {step}
+                        {idx + 1}. {getDisplayLabel(locale, step, EN_ORDER_STATUS_LABELS)}
                       </li>
                     );
                   })}
@@ -316,7 +373,7 @@ export default function PesananPage() {
                         onClick={() => void runOrderTransition(order.id, "Dijadwalkan")}
                         className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
                       >
-                        Setujui Jadwal COD
+                        {isEn ? "Approve COD Schedule" : "Setujui Jadwal COD"}
                       </button>
                       {!authUserId && (
                         <button
@@ -326,7 +383,7 @@ export default function PesananPage() {
                           }
                           className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-2 text-xs font-bold text-[#111827]"
                         >
-                          Tandai Kedaluwarsa
+                          {isEn ? "Mark Expired" : "Tandai Kedaluwarsa"}
                         </button>
                       )}
                     </>
@@ -340,7 +397,7 @@ export default function PesananPage() {
                       }
                       className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827]"
                     >
-                      Tandai Sudah Diserahkan
+                      {isEn ? "Mark Handed Over" : "Tandai Sudah Diserahkan"}
                     </button>
                   )}
 
@@ -352,7 +409,7 @@ export default function PesananPage() {
                         onClick={() => void runOrderTransition(order.id, "Selesai")}
                         className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
                       >
-                        Konfirmasi Barang Diterima
+                        {isEn ? "Confirm Item Received" : "Konfirmasi Barang Diterima"}
                       </button>
                     )}
 
@@ -362,13 +419,13 @@ export default function PesananPage() {
                       onClick={() => setReviewTarget(order)}
                       className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827]"
                     >
-                      Beri Ulasan
+                      {isEn ? "Leave Review" : "Beri Ulasan"}
                     </button>
                   )}
 
                   {order.ratingSubmitted && (
                     <span className="inline-flex min-h-11 items-center rounded-xl border border-[#15803D] bg-[#F0FDF4] px-3 py-1.5 text-xs font-extrabold text-[#14532D]">
-                      Ulasan: {order.ratingSubmitted}/5
+                      {isEn ? `Review: ${order.ratingSubmitted}/5` : `Ulasan: ${order.ratingSubmitted}/5`}
                     </span>
                   )}
 
@@ -382,7 +439,7 @@ export default function PesananPage() {
                       }}
                       className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-3.5 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
                     >
-                      Batalkan Pesanan
+                      {isEn ? "Cancel Order" : "Batalkan Pesanan"}
                     </button>
                   )}
 
@@ -397,16 +454,21 @@ export default function PesananPage() {
                           "Laporan kendala COD / no-show dari halaman Pesanan.",
                       });
                       if (!res.ok) {
-                        setActionError(res.error ?? "Gagal mengirim laporan.");
+                        setActionError(
+                          res.error ??
+                            (isEn ? "Failed to submit report." : "Gagal mengirim laporan.")
+                        );
                       } else {
                         setActionNotice(
-                          `Laporan kendala untuk ${order.code} dikirim ke Administrator.`
+                          isEn
+                            ? `Issue report for ${order.code} sent to Administrator.`
+                            : `Laporan kendala untuk ${order.code} dikirim ke Administrator.`
                         );
                       }
                     }}
                     className="inline-flex min-h-11 items-center rounded-xl border border-[#111827]/35 bg-white px-3.5 py-2 text-xs font-bold text-[#334155] hover:bg-[#F8FAFC]"
                   >
-                    Laporkan Kendala
+                    {isEn ? "Report Issue" : "Laporkan Kendala"}
                   </button>
                 </div>
               </li>
@@ -423,12 +485,12 @@ export default function PesananPage() {
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="judul-batal-pesanan" className="text-lg font-extrabold text-[#111827]">
-            Batalkan Pesanan {cancelTarget?.code}
+            {isEn ? `Cancel Order ${cancelTarget?.code}` : `Batalkan Pesanan ${cancelTarget?.code}`}
           </h2>
           <button
             type="button"
             onClick={() => setCancelTarget(null)}
-            aria-label="Tutup dialog batal pesanan"
+            aria-label={isEn ? "Close cancel order dialog" : "Tutup dialog batal pesanan"}
             className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold"
           >
             ✕
@@ -437,14 +499,17 @@ export default function PesananPage() {
 
         <form onSubmit={handleCancelSubmit} className="mt-4 space-y-4">
           <p className="text-xs font-medium text-[#334155]">
-            Pembatalan otomatis mengembalikan kuota stok listing ini ke katalog.
+            {isEn
+              ? "Cancelling automatically restores this listing's stock quota back to the catalog."
+              : "Pembatalan otomatis mengembalikan kuota stok listing ini ke katalog."}
           </p>
           <div>
             <label
               htmlFor="alasan-batal"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Alasan Pembatalan <span aria-hidden="true">*</span>
+              {isEn ? "Cancellation Reason" : "Alasan Pembatalan"}{" "}
+              <span aria-hidden="true">*</span>
             </label>
             <textarea
               id="alasan-batal"
@@ -454,7 +519,11 @@ export default function PesananPage() {
                 setCancelReason(e.target.value);
                 setCancelError("");
               }}
-              placeholder="Contoh: Jadwal kuliah berubah bentrok, perlu pesan ulang."
+              placeholder={
+                isEn
+                  ? "Example: Class schedule conflicted, need to reorder."
+                  : "Contoh: Jadwal kuliah berubah bentrok, perlu pesan ulang."
+              }
               className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium sm:text-sm"
             />
           </div>
@@ -472,13 +541,13 @@ export default function PesananPage() {
               onClick={() => setCancelTarget(null)}
               className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold"
             >
-              Kembali
+              {isEn ? "Back" : "Kembali"}
             </button>
             <button
               type="submit"
               className="min-h-11 rounded-full border-2 border-[#111827] bg-[#991B1B] px-5 text-xs font-bold text-white"
             >
-              Konfirmasi Batalkan
+              {isEn ? "Confirm Cancel" : "Konfirmasi Batalkan"}
             </button>
           </div>
         </form>
@@ -492,12 +561,12 @@ export default function PesananPage() {
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="judul-ulasan-pesanan" className="text-lg font-extrabold text-[#111827]">
-            Nilai Transaksi {reviewTarget?.code}
+            {isEn ? `Rate Transaction ${reviewTarget?.code}` : `Nilai Transaksi ${reviewTarget?.code}`}
           </h2>
           <button
             type="button"
             onClick={() => setReviewTarget(null)}
-            aria-label="Tutup dialog ulasan"
+            aria-label={isEn ? "Close review dialog" : "Tutup dialog ulasan"}
             className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold"
           >
             ✕
@@ -507,7 +576,7 @@ export default function PesananPage() {
         <form onSubmit={handleReviewSubmit} className="mt-4 space-y-4">
           <fieldset className="space-y-2">
             <legend className="text-xs font-extrabold text-[#111827]">
-              Skor Penilaian (1 sampai 5)
+              {isEn ? "Rating Score (1 to 5)" : "Skor Penilaian (1 sampai 5)"}
             </legend>
             <div className="flex flex-wrap gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -525,7 +594,9 @@ export default function PesananPage() {
                     onChange={() => setRating(star)}
                     className="h-4 w-4 accent-[#15803D]"
                   />
-                  <span>{star} Bintang</span>
+                  <span>
+                    {star} {isEn ? (star === 1 ? "Star" : "Stars") : "Bintang"}
+                  </span>
                 </label>
               ))}
             </div>
@@ -536,14 +607,18 @@ export default function PesananPage() {
               htmlFor="komentar-ulasan"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Komentar Singkat (Opsional)
+              {isEn ? "Short Comment (Optional)" : "Komentar Singkat (Opsional)"}
             </label>
             <textarea
               id="komentar-ulasan"
               rows={2}
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
-              placeholder="Contoh: Barang sesuai deskripsi dan datang tepat waktu."
+              placeholder={
+                isEn
+                  ? "Example: Item matched the description and arrived on time."
+                  : "Contoh: Barang sesuai deskripsi dan datang tepat waktu."
+              }
               className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium sm:text-sm"
             />
           </div>
@@ -554,13 +629,13 @@ export default function PesananPage() {
               onClick={() => setReviewTarget(null)}
               className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold"
             >
-              Batal
+              {isEn ? "Cancel" : "Batal"}
             </button>
             <button
               type="submit"
               className="min-h-11 rounded-full border-2 border-[#111827] bg-[#15803D] px-5 text-xs font-bold text-white"
             >
-              Kirim Ulasan
+              {isEn ? "Submit Review" : "Kirim Ulasan"}
             </button>
           </div>
         </form>

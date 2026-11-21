@@ -8,32 +8,17 @@ import { useMarketplace } from "@/components/MarketplaceProvider";
 import {
   CATEGORIES,
   CONDITIONS,
+  EN_CATEGORY_LABELS,
+  EN_CONDITION_LABELS,
+  EN_KTM_STATUS_LABELS,
   FACULTIES,
   formatRupiah,
+  getDisplayLabel,
   type CategoryId,
   type ItemCondition,
   type ProductItem,
   type SortOption,
 } from "@/lib/preview-data";
-
-const EN_CATEGORY_LABELS: Record<CategoryId, string> = {
-  semua: "All Categories",
-  umkm: "UMKM Storefront",
-  buku: "Books & Modules",
-  elektronik: "Electronics",
-  kos: "Dorm Essentials",
-  pakaian: "Apparel",
-  "produk-umkm": "UMKM Products",
-  jasa: "Services",
-  jajanan: "Campus Snacks",
-  gratis: "Rp0 Free",
-};
-
-const EN_CONDITION_LABELS: Record<ItemCondition, string> = {
-  Baru: "New",
-  "Bekas Seperti Baru": "Used Like New",
-  "Bekas Layak Pakai": "Used Good",
-};
 
 function ListingCard({
   item,
@@ -66,13 +51,13 @@ function ListingCard({
         <Link
           href={`/listing/${item.id}`}
           className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-[#111827] p-2 ${item.cardBg}`}
-          aria-label={`Lihat detail ${item.title}`}
+          aria-label={isEn ? `View details for ${item.title}` : `Lihat detail ${item.title}`}
         >
           {item.uploadedImages && item.uploadedImages[0] ? (
             <Image
               unoptimized
               src={item.uploadedImages[0]}
-              alt={`Foto ${item.title}`}
+              alt={isEn ? `Photo of ${item.title}` : `Foto ${item.title}`}
               width={80}
               height={80}
               className="h-full w-full rounded object-contain"
@@ -84,7 +69,9 @@ function ListingCard({
 
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-extrabold text-[#15803D]">{item.priceLabel}</span>
+            <span className="text-sm font-extrabold text-[#15803D]">
+              {formatRupiah(item.price, locale)}
+            </span>
             <span className="text-[11px] font-bold text-[#475569]">
               {item.alwaysAvailable
                 ? isEn
@@ -144,8 +131,12 @@ function ListingCard({
             aria-pressed={isSaved}
             aria-label={
               isSaved
-                ? `Hapus ${item.title} dari daftar tersimpan`
-                : `Simpan ${item.title}`
+                ? isEn
+                  ? `Remove ${item.title} from saved`
+                  : `Hapus ${item.title} dari daftar tersimpan`
+                : isEn
+                  ? `Save ${item.title}`
+                  : `Simpan ${item.title}`
             }
             className={`absolute top-1.5 right-1.5 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#111827] transition-transform active:scale-95 sm:top-2 sm:right-2 ${
               isSaved
@@ -170,7 +161,7 @@ function ListingCard({
               <Image
                 unoptimized
                 src={item.uploadedImages[0]}
-                alt={`Foto ${item.title}`}
+                alt={isEn ? `Photo of ${item.title}` : `Foto ${item.title}`}
                 width={320}
                 height={180}
                 className="h-full w-full rounded-lg object-contain"
@@ -184,7 +175,7 @@ function ListingCard({
         <div className="listing-card-body space-y-1 sm:space-y-1.5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-1.5 gap-y-0.5">
             <span className="text-sm font-extrabold text-[#15803D] sm:text-base">
-              {item.priceLabel}
+              {formatRupiah(item.price, locale)}
             </span>
             <span
               className={`text-[11px] font-bold sm:text-xs ${
@@ -363,11 +354,19 @@ export default function Home() {
     setCodTouched(true);
 
     if (!codSpotChoice || !proposedTime.trim()) {
-      setCodError("Pilih 1 titik COD kampus dan isi usulan hari serta jam ketemuan.");
+      setCodError(
+        isEn
+          ? "Pick 1 campus COD spot and fill in a proposed meetup date and time."
+          : "Pilih 1 titik COD kampus dan isi usulan hari serta jam ketemuan."
+      );
       return;
     }
     if (quantity < 1 || (!codProduct.alwaysAvailable && quantity > codProduct.stock)) {
-      setCodError(`Jumlah pesanan harus antara 1 sampai ${codProduct.stock}.`);
+      setCodError(
+        isEn
+          ? `Order quantity must be between 1 and ${codProduct.stock}.`
+          : `Jumlah pesanan harus antara 1 sampai ${codProduct.stock}.`
+      );
       return;
     }
 
@@ -384,7 +383,10 @@ export default function Home() {
     });
 
     if (!result.ok) {
-      setCodError(result.error ?? "Gagal mengirim permintaan COD.");
+      setCodError(
+        result.error ??
+          (isEn ? "Failed to send COD order request." : "Gagal mengirim permintaan COD.")
+      );
       return;
     }
 
@@ -964,7 +966,9 @@ export default function Home() {
             href="/profil"
             className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
           >
-            {isEn ? `KTM Status: ${profile.ktmStatus}` : `Status KTM: ${profile.ktmStatus}`}
+            {isEn
+              ? `KTM Status: ${getDisplayLabel(locale, profile.ktmStatus, EN_KTM_STATUS_LABELS)}`
+              : `Status KTM: ${profile.ktmStatus}`}
           </Link>
         </div>
 
@@ -982,34 +986,49 @@ export default function Home() {
 
         <details className="rounded-xl border border-[#111827]/30 bg-white p-3.5 text-xs text-[#334155]">
           <summary className="cursor-pointer font-extrabold text-[#111827]">
-            Cara kerja COD kampus &amp; privasi nomor WhatsApp
+            {isEn
+              ? "How campus COD & WhatsApp privacy work"
+              : "Cara kerja COD kampus & privasi nomor WhatsApp"}
           </summary>
           <ol className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
             <li className="rounded-lg bg-[#F8FAFC] p-2.5">
-              <span className="font-extrabold text-[#15803D]">1. Menunggu</span>
+              <span className="font-extrabold text-[#15803D]">
+                {isEn ? "1. Pending" : "1. Menunggu"}
+              </span>
               <p className="mt-0.5 leading-snug">
-                Pilih 1 titik COD dan usulkan jam temu. Kedaluwarsa otomatis dalam 24 jam
-                jika penjual belum menjawab.
+                {isEn
+                  ? "Pick 1 COD spot and propose a meetup time. Expires automatically in 24 hours if unanswered."
+                  : "Pilih 1 titik COD dan usulkan jam temu. Kedaluwarsa otomatis dalam 24 jam jika penjual belum menjawab."}
               </p>
             </li>
             <li className="rounded-lg bg-[#F8FAFC] p-2.5">
-              <span className="font-extrabold text-[#15803D]">2. Dijadwalkan</span>
+              <span className="font-extrabold text-[#15803D]">
+                {isEn ? "2. Scheduled" : "2. Dijadwalkan"}
+              </span>
               <p className="mt-0.5 leading-snug">
-                Penjual menyetujui jadwal. Tombol WhatsApp baru terbuka di halaman Pesanan
-                sesuai aturan UU PDP.
+                {isEn
+                  ? "Seller accepts the schedule. The WhatsApp contact button opens on Orders per UU PDP rules."
+                  : "Penjual menyetujui jadwal. Tombol WhatsApp baru terbuka di halaman Pesanan sesuai aturan UU PDP."}
               </p>
             </li>
             <li className="rounded-lg bg-[#F8FAFC] p-2.5">
-              <span className="font-extrabold text-[#15803D]">3. Diserahkan</span>
+              <span className="font-extrabold text-[#15803D]">
+                {isEn ? "3. Handed Over" : "3. Diserahkan"}
+              </span>
               <p className="mt-0.5 leading-snug">
-                Pembeli mengecek barang langsung di titik COD dan membayar tunai tanpa biaya
-                admin.
+                {isEn
+                  ? "Buyer inspects the item at the COD spot and pays cash directly with zero admin fee."
+                  : "Pembeli mengecek barang langsung di titik COD dan membayar tunai tanpa biaya admin."}
               </p>
             </li>
             <li className="rounded-lg bg-[#F8FAFC] p-2.5">
-              <span className="font-extrabold text-[#15803D]">4. Selesai</span>
+              <span className="font-extrabold text-[#15803D]">
+                {isEn ? "4. Completed" : "4. Selesai"}
+              </span>
               <p className="mt-0.5 leading-snug">
-                Pembeli konfirmasi selesai (atau otomatis 48 jam) lalu dapat memberi ulasan.
+                {isEn
+                  ? "Buyer confirms completion (or auto-completes after 48h) and can leave a rating."
+                  : "Pembeli konfirmasi selesai (atau otomatis 48 jam) lalu dapat memberi ulasan."}
               </p>
             </li>
           </ol>
@@ -1024,18 +1043,21 @@ export default function Home() {
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="text-xs font-bold text-[#475569]">Ajukan Jadwal COD</span>
+            <span className="text-xs font-bold text-[#475569]">
+              {isEn ? "Propose COD Meetup" : "Ajukan Jadwal COD"}
+            </span>
             <h2 id="judul-modal-cod" className="mt-0.5 text-lg font-extrabold text-[#111827]">
-              {codProduct?.title ?? "Pesan Produk"}
+              {codProduct?.title ?? (isEn ? "Order Product" : "Pesan Produk")}
             </h2>
             <p className="text-sm font-bold text-[#15803D]">
-              {codProduct ? formatRupiah(codProduct.price * quantity) : ""} • 0% Biaya Admin
+              {codProduct ? formatRupiah(codProduct.price * quantity, locale) : ""}{" "}
+              {isEn ? "• 0% Admin Fee" : "• 0% Biaya Admin"}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setCodProduct(null)}
-            aria-label="Tutup dialog pesanan COD"
+            aria-label={isEn ? "Close COD order dialog" : "Tutup dialog pesanan COD"}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold text-[#111827] hover:bg-[#E2E8F0]"
           >
             ✕
@@ -1048,12 +1070,24 @@ export default function Home() {
             className="mt-5 space-y-4 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4"
           >
             <p className="text-sm font-extrabold text-[#15803D]">
-              Pesanan {codSuccessCode} dibuat (Status: Menunggu)
+              {isEn
+                ? `Order ${codSuccessCode} created (Status: Pending)`
+                : `Pesanan ${codSuccessCode} dibuat (Status: Menunggu)`}
             </p>
             <p className="text-xs font-medium leading-relaxed text-[#111827]">
-              Permintaan COD untuk <strong>{quantity}x</strong> item di{" "}
-              <strong>{codSpotChoice}</strong> tercatat ke daftar pesanan. Tunggu
-              konfirmasi penjual untuk membuka tombol WhatsApp.
+              {isEn ? (
+                <>
+                  COD request for <strong>{quantity}x</strong> at{" "}
+                  <strong>{codSpotChoice}</strong> is saved to Orders. Wait for the
+                  seller&apos;s approval to unlock WhatsApp contact.
+                </>
+              ) : (
+                <>
+                  Permintaan COD untuk <strong>{quantity}x</strong> item di{" "}
+                  <strong>{codSpotChoice}</strong> tercatat ke daftar pesanan. Tunggu
+                  konfirmasi penjual untuk membuka tombol WhatsApp.
+                </>
+              )}
             </p>
             <div className="flex flex-wrap gap-2">
               <Link
@@ -1061,14 +1095,14 @@ export default function Home() {
                 onClick={() => setCodProduct(null)}
                 className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
               >
-                Lihat di Halaman Pesanan
+                {isEn ? "View in Orders" : "Lihat di Halaman Pesanan"}
               </Link>
               <button
                 type="button"
                 onClick={() => setCodProduct(null)}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827]"
               >
-                Tutup
+                {isEn ? "Close" : "Tutup"}
               </button>
             </div>
           </div>
@@ -1080,7 +1114,7 @@ export default function Home() {
                   htmlFor="pilih-titik-cod"
                   className="block text-xs font-extrabold text-[#111827]"
                 >
-                  Titik COD yang Didukung Penjual
+                  {isEn ? "Seller's Supported COD Spot" : "Titik COD yang Didukung Penjual"}
                 </label>
                 <select
                   id="pilih-titik-cod"
@@ -1102,7 +1136,7 @@ export default function Home() {
                   htmlFor="jumlah-pesan-cod"
                   className="block text-xs font-extrabold text-[#111827]"
                 >
-                  Jumlah
+                  {isEn ? "Qty" : "Jumlah"}
                 </label>
                 <input
                   id="jumlah-pesan-cod"
@@ -1125,7 +1159,7 @@ export default function Home() {
                 htmlFor="waktu-cod"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Usulan Hari &amp; Jam Ketemuan
+                {isEn ? "Proposed Date & Time" : "Usulan Hari & Jam Ketemuan"}
               </label>
               <input
                 id="waktu-cod"
@@ -1136,7 +1170,11 @@ export default function Home() {
                 onBlur={() => {
                   setCodTouched(true);
                   if (!proposedTime.trim()) {
-                    setCodError("Mohon tentukan hari dan jam ketemuan COD.");
+                    setCodError(
+                      isEn
+                        ? "Please specify a COD meetup date and time."
+                        : "Mohon tentukan hari dan jam ketemuan COD."
+                    );
                   }
                 }}
                 onChange={(e) => {
@@ -1151,21 +1189,21 @@ export default function Home() {
                   onClick={() => applyQuickTime(0, "15:00")}
                   className="min-h-11 rounded-xl border border-[#111827]/40 bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7]"
                 >
-                  Hari ini 15.00
+                  {isEn ? "Today 15:00" : "Hari ini 15.00"}
                 </button>
                 <button
                   type="button"
                   onClick={() => applyQuickTime(1, "10:00")}
                   className="min-h-11 rounded-xl border border-[#111827]/40 bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7]"
                 >
-                  Besok 10.00
+                  {isEn ? "Tomorrow 10:00" : "Besok 10.00"}
                 </button>
                 <button
                   type="button"
                   onClick={() => applyQuickTime(1, "13:00")}
                   className="min-h-11 rounded-xl border border-[#111827]/40 bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7]"
                 >
-                  Besok 13.00
+                  {isEn ? "Tomorrow 13:00" : "Besok 13.00"}
                 </button>
               </div>
             </div>
@@ -1175,7 +1213,7 @@ export default function Home() {
                 htmlFor="catatan-cod"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Catatan untuk Penjual (Opsional)
+                {isEn ? "Note for Seller (Optional)" : "Catatan untuk Penjual (Opsional)"}
               </label>
               <textarea
                 id="catatan-cod"
@@ -1183,7 +1221,11 @@ export default function Home() {
                 rows={2}
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
-                placeholder="Contoh: Pakai jaket almamater hijau di depan lobby."
+                placeholder={
+                  isEn
+                    ? "Example: Wearing a green campus jacket at the front lobby."
+                    : "Contoh: Pakai jaket almamater hijau di depan lobby."
+                }
                 className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium text-[#111827] placeholder:text-[#475569] sm:text-sm"
               />
             </div>
@@ -1193,7 +1235,7 @@ export default function Home() {
                 role="alert"
                 className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
               >
-                Perhatian: {codError}
+                {isEn ? "Notice:" : "Perhatian:"} {codError}
               </div>
             )}
 
@@ -1203,13 +1245,13 @@ export default function Home() {
                 onClick={() => setCodProduct(null)}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827]"
               >
-                Batal
+                {isEn ? "Cancel" : "Batal"}
               </button>
               <button
                 type="submit"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534]"
               >
-                Kirim Permintaan COD
+                {isEn ? "Send COD Request" : "Kirim Permintaan COD"}
               </button>
             </div>
           </form>

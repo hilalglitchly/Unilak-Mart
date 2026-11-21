@@ -8,13 +8,16 @@ import { useMarketplace } from "@/components/MarketplaceProvider";
 import { PasswordInput } from "@/components/PasswordInput";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
+  EN_KTM_STATUS_LABELS,
   FACULTIES,
   formatRupiah,
+  getDisplayLabel,
+  type AppLocale,
   type KtmStatus,
   type UserProfile,
 } from "@/lib/preview-data";
 
-function RecoveryModeNotice() {
+function RecoveryModeNotice({ isEn }: { isEn: boolean }) {
   const params = useSearchParams();
   if (params.get("mode") !== "reset-sandi") return null;
 
@@ -23,13 +26,20 @@ function RecoveryModeNotice() {
       role="status"
       className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-extrabold text-[#14532D]"
     >
-      Tautan pemulihan kata sandi terverifikasi. Silakan ketik kata sandi baru Anda di
-      bawah ini.
+      {isEn
+        ? "Password recovery link verified. Enter your new password below."
+        : "Tautan pemulihan kata sandi terverifikasi. Silakan ketik kata sandi baru Anda di bawah ini."}
     </div>
   );
 }
 
-function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
+function PasswordChangeCard({
+  authUserId,
+  isEn,
+}: {
+  authUserId: string | null;
+  isEn: boolean;
+}) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPwd, setShowNewPwd] = useState(false);
@@ -42,11 +52,17 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
     e.preventDefault();
     setPwdNotice("");
     if (newPassword.length < 8) {
-      setPwdError("Kata sandi baru minimal 8 karakter.");
+      setPwdError(
+        isEn
+          ? "New password must be at least 8 characters."
+          : "Kata sandi baru minimal 8 karakter."
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPwdError("Konfirmasi kata sandi belum cocok.");
+      setPwdError(
+        isEn ? "Password confirmation does not match." : "Konfirmasi kata sandi belum cocok."
+      );
       return;
     }
 
@@ -69,7 +85,11 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
           setPwdError("");
           setNewPassword("");
           setConfirmPassword("");
-          setPwdNotice("Kata sandi akun berhasil diperbarui di Supabase Auth.");
+          setPwdNotice(
+            isEn
+              ? "Account password updated in Supabase Auth."
+              : "Kata sandi akun berhasil diperbarui di Supabase Auth."
+          );
           return;
         }
       }
@@ -78,7 +98,9 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
       setNewPassword("");
       setConfirmPassword("");
       setPwdNotice(
-        "Mode pratinjau tamu: pembaruan kata sandi tervalidasi lokal. Masuk via /masuk untuk menyimpan ke Supabase Auth."
+        isEn
+          ? "Guest preview mode: password update validated locally. Sign in via /masuk to save to Supabase Auth."
+          : "Mode pratinjau tamu: pembaruan kata sandi tervalidasi lokal. Masuk via /masuk untuk menyimpan ke Supabase Auth."
       );
     } finally {
       setSaving(false);
@@ -93,16 +115,17 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
     >
       <div>
         <h2 id="judul-ubah-sandi" className="text-lg font-extrabold text-[#111827]">
-          Keamanan Akun &amp; Ubah Kata Sandi
+          {isEn ? "Account Security & Change Password" : "Keamanan Akun & Ubah Kata Sandi"}
         </h2>
         <p className="text-xs font-medium text-[#475569]">
-          Perbarui kata sandi akun Anda secara berkala atau setelah membuka tautan Lupa
-          Sandi dari email.
+          {isEn
+            ? "Update your account password periodically or after opening a Password Reset email link."
+            : "Perbarui kata sandi akun Anda secara berkala atau setelah membuka tautan Lupa Sandi dari email."}
         </p>
       </div>
 
       <Suspense fallback={null}>
-        <RecoveryModeNotice />
+        <RecoveryModeNotice isEn={isEn} />
       </Suspense>
 
       <form onSubmit={handlePasswordSubmit} className="space-y-3" noValidate>
@@ -112,21 +135,21 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
               htmlFor="profil-pwd-baru"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Kata Sandi Baru (min. 8 karakter)
+              {isEn ? "New Password (min. 8 chars)" : "Kata Sandi Baru (min. 8 karakter)"}
             </label>
             <PasswordInput
               id="profil-pwd-baru"
               visible={showNewPwd}
               onToggleVisible={() => setShowNewPwd((v) => !v)}
-              toggleShowLabel="Tampilkan kata sandi baru"
-              toggleHideLabel="Sembunyikan kata sandi baru"
+              toggleShowLabel={isEn ? "Show new password" : "Tampilkan kata sandi baru"}
+              toggleHideLabel={isEn ? "Hide new password" : "Sembunyikan kata sandi baru"}
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => {
                 setNewPassword(e.target.value);
                 setPwdError("");
               }}
-              placeholder="Minimal 8 karakter"
+              placeholder={isEn ? "Minimum 8 characters" : "Minimal 8 karakter"}
               className="font-medium"
             />
           </div>
@@ -135,21 +158,21 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
               htmlFor="profil-pwd-konfirm"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Ulangi Kata Sandi Baru
+              {isEn ? "Confirm New Password" : "Ulangi Kata Sandi Baru"}
             </label>
             <PasswordInput
               id="profil-pwd-konfirm"
               visible={showConfirmPwd}
               onToggleVisible={() => setShowConfirmPwd((v) => !v)}
-              toggleShowLabel="Tampilkan konfirmasi kata sandi"
-              toggleHideLabel="Sembunyikan konfirmasi kata sandi"
+              toggleShowLabel={isEn ? "Show confirm password" : "Tampilkan konfirmasi kata sandi"}
+              toggleHideLabel={isEn ? "Hide confirm password" : "Sembunyikan konfirmasi kata sandi"}
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => {
                 setConfirmPassword(e.target.value);
                 setPwdError("");
               }}
-              placeholder="Ketik ulang kata sandi baru"
+              placeholder={isEn ? "Re-type new password" : "Ketik ulang kata sandi baru"}
               className="font-medium"
             />
           </div>
@@ -161,7 +184,13 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
             disabled={saving}
             className="min-h-11 rounded-full border-2 border-[#111827] bg-[#15803D] px-5 text-xs font-bold text-white hover:bg-[#166534] disabled:opacity-60"
           >
-            {saving ? "Menyimpan..." : "Perbarui Kata Sandi"}
+            {saving
+              ? isEn
+                ? "Saving..."
+                : "Menyimpan..."
+              : isEn
+                ? "Update Password"
+                : "Perbarui Kata Sandi"}
           </button>
         </div>
 
@@ -170,7 +199,7 @@ function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
             role="alert"
             className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
           >
-            Perhatian: {pwdError}
+            {isEn ? "Notice:" : "Perhatian:"} {pwdError}
           </div>
         )}
         {pwdNotice && (
@@ -196,12 +225,14 @@ const KTM_STATUS_STEPS: KtmStatus[] = [
 function ProfilIdentityForm({
   profile,
   authUserId,
+  locale,
   onSaveProfile,
   onSubmitKtm,
   onOpenDelete,
 }: {
   profile: UserProfile;
   authUserId: string | null;
+  locale: AppLocale;
   onSaveProfile: (patch: Partial<UserProfile>) => Promise<void> | void;
   onSubmitKtm: (input: {
     nim: string;
@@ -216,6 +247,7 @@ function ProfilIdentityForm({
   }) => Promise<{ ok: boolean; error?: string }>;
   onOpenDelete: () => void;
 }) {
+  const isEn = locale === "en";
   const [nim, setNim] = useState(profile.nim);
   const [name, setName] = useState(profile.name);
   const [prodi, setProdi] = useState(profile.prodi);
@@ -233,16 +265,26 @@ function ProfilIdentityForm({
     e.preventDefault();
     setSaveMessage("");
     if (!nim.trim() || !wa.trim() || !email.trim()) {
-      setFormError("Mohon lengkapi NIM, email aktif, dan nomor WhatsApp.");
+      setFormError(
+        isEn
+          ? "Please fill in your NIM, active email, and WhatsApp number."
+          : "Mohon lengkapi NIM, email aktif, dan nomor WhatsApp."
+      );
       return;
     }
     if (authUserId && !photoFile && !profile.ktmPhotoName) {
-      setFormError("Pilih file foto KTM Unilak terlebih dahulu untuk diunggah ke bucket privat.");
+      setFormError(
+        isEn
+          ? "Choose a Student ID (KTM) photo file first to upload to the private bucket."
+          : "Pilih file foto KTM Unilak terlebih dahulu untuk diunggah ke bucket privat."
+      );
       return;
     }
     if (!pdpConsent) {
       setFormError(
-        "Persetujuan UU PDP wajib dicentang: nomor WhatsApp dibagikan hanya saat status pesanan Dijadwalkan."
+        isEn
+          ? "UU PDP consent is required: your WhatsApp number is shared only when an order reaches Scheduled status."
+          : "Persetujuan UU PDP wajib dicentang: nomor WhatsApp dibagikan hanya saat status pesanan Dijadwalkan."
       );
       return;
     }
@@ -261,14 +303,21 @@ function ProfilIdentityForm({
         photoFile,
       });
       if (!res.ok) {
-        setFormError(res.error ?? "Gagal mengirim verifikasi KTM.");
+        setFormError(
+          res.error ??
+            (isEn ? "Failed to submit KTM verification." : "Gagal mengirim verifikasi KTM.")
+        );
         return;
       }
       setFormError("");
       setSaveMessage(
         authUserId
-          ? "Foto KTM berhasil diunggah ke bucket privat dan pengajuan verifikasi tersimpan di Supabase."
-          : "Pengajuan verifikasi KTM dikirim ke antrean Admin. Cek status atau proses persetujuan di /admin."
+          ? isEn
+            ? "KTM photo uploaded to the private bucket and verification request saved to Supabase."
+            : "Foto KTM berhasil diunggah ke bucket privat dan pengajuan verifikasi tersimpan di Supabase."
+          : isEn
+            ? "KTM verification request sent to the Admin queue. Check status or approve in /admin."
+            : "Pengajuan verifikasi KTM dikirim ke antrean Admin. Cek status atau proses persetujuan di /admin."
       );
     } finally {
       setSubmitting(false);
@@ -285,8 +334,12 @@ function ProfilIdentityForm({
     });
     setSaveMessage(
       authUserId
-        ? "Data profil tampilan tersimpan ke database Supabase."
-        : "Data profil tampilan diperbarui."
+        ? isEn
+          ? "Display profile data saved to Supabase database."
+          : "Data profil tampilan tersimpan ke database Supabase."
+        : isEn
+          ? "Display profile data updated."
+          : "Data profil tampilan diperbarui."
     );
   };
 
@@ -297,7 +350,7 @@ function ProfilIdentityForm({
       noValidate
     >
       <h2 className="text-lg font-extrabold text-[#111827]">
-        Data Identitas &amp; Unggah Foto KTM
+        {isEn ? "Identity Data & Upload KTM Photo" : "Data Identitas & Unggah Foto KTM"}
       </h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -306,7 +359,7 @@ function ProfilIdentityForm({
             htmlFor="profil-nama"
             className="block text-xs font-extrabold text-[#111827]"
           >
-            Nama Tampilan (Sesuai KTM)
+            {isEn ? "Display Name (Per Student ID)" : "Nama Tampilan (Sesuai KTM)"}
           </label>
           <input
             id="profil-nama"
@@ -322,7 +375,9 @@ function ProfilIdentityForm({
             htmlFor="profil-nim"
             className="block text-xs font-extrabold text-[#111827]"
           >
-            NIM Mahasiswa Aktif Unilak (Satu NIM, Satu Akun)
+            {isEn
+              ? "Active Unilak Student NIM (One NIM, One Account)"
+              : "NIM Mahasiswa Aktif Unilak (Satu NIM, Satu Akun)"}
           </label>
           <input
             id="profil-nim"
@@ -333,7 +388,11 @@ function ProfilIdentityForm({
               setNim(e.target.value);
               setFormError("");
             }}
-            placeholder="Masukkan NIM sesuai Kartu Tanda Mahasiswa"
+            placeholder={
+              isEn
+                ? "Enter NIM matching your Student ID"
+                : "Masukkan NIM sesuai Kartu Tanda Mahasiswa"
+            }
             className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
           />
         </div>
@@ -345,7 +404,7 @@ function ProfilIdentityForm({
             htmlFor="profil-fakultas"
             className="block text-xs font-extrabold text-[#111827]"
           >
-            Fakultas
+            {isEn ? "Faculty" : "Fakultas"}
           </label>
           <select
             id="profil-fakultas"
@@ -365,7 +424,7 @@ function ProfilIdentityForm({
             htmlFor="profil-prodi"
             className="block text-xs font-extrabold text-[#111827]"
           >
-            Program Studi
+            {isEn ? "Study Program" : "Program Studi"}
           </label>
           <input
             id="profil-prodi"
@@ -383,7 +442,7 @@ function ProfilIdentityForm({
             htmlFor="profil-email"
             className="block text-xs font-extrabold text-[#111827]"
           >
-            Email Aktif
+            {isEn ? "Active Email" : "Email Aktif"}
           </label>
           <input
             id="profil-email"
@@ -394,7 +453,7 @@ function ProfilIdentityForm({
               setEmail(e.target.value);
               setFormError("");
             }}
-            placeholder="nama@email.com"
+            placeholder={isEn ? "name@email.com" : "nama@email.com"}
             className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
           />
         </div>
@@ -403,7 +462,7 @@ function ProfilIdentityForm({
             htmlFor="profil-wa"
             className="block text-xs font-extrabold text-[#111827]"
           >
-            Nomor WhatsApp Aktif
+            {isEn ? "Active WhatsApp Number" : "Nomor WhatsApp Aktif"}
           </label>
           <input
             id="profil-wa"
@@ -414,7 +473,7 @@ function ProfilIdentityForm({
               setWa(e.target.value);
               setFormError("");
             }}
-            placeholder="Contoh: 0812xxxxxxxx"
+            placeholder={isEn ? "Example: 0812xxxxxxxx" : "Contoh: 0812xxxxxxxx"}
             className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
           />
         </div>
@@ -425,7 +484,9 @@ function ProfilIdentityForm({
           htmlFor="foto-ktm"
           className="block text-xs font-extrabold text-[#111827]"
         >
-          Unggah Foto KTM Unilak (Bucket Privat)
+          {isEn
+            ? "Upload Unilak Student ID (KTM) Photo (Private Bucket)"
+            : "Unggah Foto KTM Unilak (Bucket Privat)"}
         </label>
         <input
           id="foto-ktm"
@@ -441,7 +502,7 @@ function ProfilIdentityForm({
         />
         {photoName && (
           <p className="mt-1 text-xs font-bold text-[#15803D]">
-            Berkas siap diunggah: {photoName}
+            {isEn ? "Ready to upload:" : "Berkas siap diunggah:"} {photoName}
           </p>
         )}
       </div>
@@ -457,9 +518,19 @@ function ProfilIdentityForm({
           className="mt-0.5 h-5 w-5 shrink-0 accent-[#15803D]"
         />
         <span>
-          Saya menyetujui ketentuan UU No. 27 Tahun 2022 (UU PDP) bahwa nomor WhatsApp
-          saya baru dibagikan kepada lawan transaksi setelah status pesanan{" "}
-          <strong>Dijadwalkan</strong>.
+          {isEn ? (
+            <>
+              I agree to UU No. 27/2022 (UU PDP) terms that my WhatsApp number is shared
+              with the counterparty only once the order reaches{" "}
+              <strong>Scheduled</strong> status.
+            </>
+          ) : (
+            <>
+              Saya menyetujui ketentuan UU No. 27 Tahun 2022 (UU PDP) bahwa nomor WhatsApp
+              saya baru dibagikan kepada lawan transaksi setelah status pesanan{" "}
+              <strong>Dijadwalkan</strong>.
+            </>
+          )}
         </span>
       </label>
 
@@ -468,7 +539,7 @@ function ProfilIdentityForm({
           role="alert"
           className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
         >
-          Perhatian: {formError}
+          {isEn ? "Notice:" : "Perhatian:"} {formError}
         </div>
       )}
 
@@ -487,7 +558,7 @@ function ProfilIdentityForm({
           onClick={onOpenDelete}
           className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
         >
-          Hapus Akun Mandiri
+          {isEn ? "Delete Account (Self-Service)" : "Hapus Akun Mandiri"}
         </button>
 
         <div className="flex flex-wrap gap-2">
@@ -497,14 +568,20 @@ function ProfilIdentityForm({
             onClick={() => void handleSaveProfileOnly()}
             className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827]"
           >
-            Simpan Perubahan Profil
+            {isEn ? "Save Profile Changes" : "Simpan Perubahan Profil"}
           </button>
           <button
             type="submit"
             disabled={submitting}
             className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534] disabled:opacity-60"
           >
-            {submitting ? "Mengunggah..." : "Ajukan Verifikasi KTM"}
+            {submitting
+              ? isEn
+                ? "Uploading..."
+                : "Mengunggah..."
+              : isEn
+                ? "Submit KTM Verification"
+                : "Ajukan Verifikasi KTM"}
           </button>
         </div>
       </div>
@@ -525,7 +602,9 @@ export default function ProfilPage() {
     updateProfile,
     submitKtmVerification,
     deleteOwnAccount,
+    locale,
   } = useMarketplace();
+  const isEn = locale === "en";
 
   const [listingMessage, setListingMessage] = useState("");
   const [listingError, setListingError] = useState("");
@@ -541,7 +620,9 @@ export default function ProfilPage() {
   const handleDeleteAccount = async () => {
     const res = await deleteOwnAccount();
     if (!res.ok) {
-      setDeleteError(res.error ?? "Gagal menghapus akun.");
+      setDeleteError(
+        res.error ?? (isEn ? "Failed to delete account." : "Gagal menghapus akun.")
+      );
       return;
     }
     setDeleteError("");
@@ -556,12 +637,18 @@ export default function ProfilPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
-            Profil Mahasiswa &amp; Verifikasi KTM
+            {isEn
+              ? "Student Profile & KTM Verification"
+              : "Profil Mahasiswa & Verifikasi KTM"}
           </h1>
           <p className="mt-1 text-sm font-medium text-[#475569]">
             {authUserId
-              ? "Akun terhubung ke sesi Supabase Auth. Akun Terverifikasi dapat menjual, memesan, dan memberi ulasan."
-              : "Mode pratinjau tamu. Masuk lewat /masuk untuk menyimpan perubahan ke akun Supabase Anda."}
+              ? isEn
+                ? "Connected to Supabase Auth. Verified accounts can sell, place COD orders, and leave reviews."
+                : "Akun terhubung ke sesi Supabase Auth. Akun Terverifikasi dapat menjual, memesan, dan memberi ulasan."
+              : isEn
+                ? "Guest preview mode. Sign in via /masuk to save changes to your Supabase account."
+                : "Mode pratinjau tamu. Masuk lewat /masuk untuk menyimpan perubahan ke akun Supabase Anda."}
           </p>
         </div>
 
@@ -572,40 +659,40 @@ export default function ProfilPage() {
               onClick={() => void signOutAccount()}
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF2F2]"
             >
-              Keluar Akun
+              {isEn ? "Sign Out" : "Keluar Akun"}
             </button>
           ) : (
             <Link
               href="/masuk"
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4]"
             >
-              Masuk / Ganti Akun
+              {isEn ? "Sign In / Switch Account" : "Masuk / Ganti Akun"}
             </Link>
           )}
           <Link
             href="/admin"
             className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
           >
-            Panel Admin
+            {isEn ? "Admin Panel" : "Panel Admin"}
           </Link>
         </div>
       </div>
 
       {/* Ringkasan Status KTM */}
       <section
-        aria-label="Status verifikasi KTM"
+        aria-label={isEn ? "KTM verification status" : "Status verifikasi KTM"}
         className="space-y-2.5 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4 sm:p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-extrabold text-[#111827]">
-            Status Verifikasi KTM:{" "}
+            {isEn ? "KTM Verification Status:" : "Status Verifikasi KTM:"}{" "}
             <span className="ml-1 inline-block rounded-md border border-[#111827] bg-white px-2.5 py-0.5 text-xs font-extrabold text-[#14532D]">
-              {profile.ktmStatus}
+              {getDisplayLabel(locale, profile.ktmStatus, EN_KTM_STATUS_LABELS)}
             </span>
           </h2>
           {profile.deletedAt && (
             <span className="rounded-md border border-[#991B1B] bg-[#FEF2F2] px-2.5 py-0.5 text-xs font-bold text-[#991B1B]">
-              Akun Dianonimkan
+              {isEn ? "Account Anonymized" : "Akun Dianonimkan"}
             </span>
           )}
         </div>
@@ -620,21 +707,23 @@ export default function ProfilPage() {
                   : "bg-white/80 text-[#475569]"
               }`}
             >
-              {st}
+              {getDisplayLabel(locale, st, EN_KTM_STATUS_LABELS)}
             </li>
           ))}
         </ol>
 
         {profile.ktmReason && (
           <p className="rounded-xl border border-[#991B1B] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]">
-            Alasan Penolakan Admin: {profile.ktmReason} (Foto dihapus maksimal 7 hari
-            setelah ditolak).
+            {isEn
+              ? `Admin Rejection Reason: ${profile.ktmReason} (Photo removed within 7 days of rejection).`
+              : `Alasan Penolakan Admin: ${profile.ktmReason} (Foto dihapus maksimal 7 hari setelah ditolak).`}
           </p>
         )}
 
         <p className="text-xs font-medium text-[#475569]">
-          Foto KTM disimpan di bucket privat dan langsung dihapus otomatis setelah
-          verifikasi disetujui.
+          {isEn
+            ? "KTM photos are stored in a private bucket and automatically deleted once verified."
+            : "Foto KTM disimpan di bucket privat dan langsung dihapus otomatis setelah verifikasi disetujui."}
         </p>
       </section>
 
@@ -642,6 +731,7 @@ export default function ProfilPage() {
         key={`${authUserId ?? "preview"}-${profile.email}-${profile.deletedAt ?? ""}`}
         profile={profile}
         authUserId={authUserId}
+        locale={locale}
         onSaveProfile={updateProfile}
         onSubmitKtm={submitKtmVerification}
         onOpenDelete={() => {
@@ -651,7 +741,7 @@ export default function ProfilPage() {
         }}
       />
 
-      <PasswordChangeCard authUserId={authUserId} />
+      <PasswordChangeCard authUserId={authUserId} isEn={isEn} />
 
       {/* Panel Kelola Listing Penjual */}
       <section
@@ -662,17 +752,19 @@ export default function ProfilPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 id="judul-listing-saya" className="text-lg font-extrabold text-[#111827]">
-              Listing Saya ({myListings.length})
+              {isEn ? `My Listings (${myListings.length})` : `Listing Saya (${myListings.length})`}
             </h2>
             <p className="text-xs font-medium text-[#475569]">
-              Ubah harga/stok, nonaktifkan sementara, atau tandai terjual.
+              {isEn
+                ? "Edit price or stock, deactivate temporarily, or mark as sold."
+                : "Ubah harga/stok, nonaktifkan sementara, atau tandai terjual."}
             </p>
           </div>
           <Link
             href="/jual"
             className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#FDE047]"
           >
-            + Pasang Listing
+            {isEn ? "+ Post Listing" : "+ Pasang Listing"}
           </Link>
         </div>
 
@@ -681,7 +773,7 @@ export default function ProfilPage() {
             role="alert"
             className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
           >
-            Perhatian: {listingError}
+            {isEn ? "Notice:" : "Perhatian:"} {listingError}
           </div>
         )}
 
@@ -696,7 +788,7 @@ export default function ProfilPage() {
 
         {myListings.length === 0 ? (
           <div className="rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-5 text-center text-xs font-semibold text-[#475569]">
-            Belum ada listing milik akun ini.
+            {isEn ? "No listings under this account yet." : "Belum ada listing milik akun ini."}
           </div>
         ) : (
           <ul className="space-y-3">
@@ -707,6 +799,17 @@ export default function ProfilPage() {
                 : isSold
                   ? "Terjual"
                   : "Aktif";
+              const displayStatus = item.hidden
+                ? isEn
+                  ? "Inactive"
+                  : "Nonaktif"
+                : isSold
+                  ? isEn
+                    ? "Sold Out"
+                    : "Terjual"
+                  : isEn
+                    ? "Active"
+                    : "Aktif";
               const priceVal = priceDrafts[item.id] ?? String(item.price);
               const stockVal = stockDrafts[item.id] ?? String(item.stock);
 
@@ -726,7 +829,7 @@ export default function ProfilPage() {
                               : "bg-white text-[#475569]"
                         }`}
                       >
-                        {statusText}
+                        {displayStatus}
                       </span>
                       <h3 className="mt-1 text-sm font-extrabold text-[#111827]">
                         <Link href={`/listing/${item.id}`} className="hover:underline">
@@ -734,8 +837,14 @@ export default function ProfilPage() {
                         </Link>
                       </h3>
                       <p className="text-xs font-semibold text-[#475569]">
-                        {formatRupiah(item.price)} •{" "}
-                        {item.alwaysAvailable ? "Selalu tersedia" : `Stok: ${item.stock}`}
+                        {formatRupiah(item.price, locale)} •{" "}
+                        {item.alwaysAvailable
+                          ? isEn
+                            ? "Always available"
+                            : "Selalu tersedia"
+                          : isEn
+                            ? `Stock: ${item.stock}`
+                            : `Stok: ${item.stock}`}
                       </p>
                     </div>
                   </div>
@@ -746,7 +855,7 @@ export default function ProfilPage() {
                         htmlFor={`harga-${item.id}`}
                         className="block text-[11px] font-bold text-[#334155]"
                       >
-                        Ubah Harga (Rp)
+                        {isEn ? "Edit Price (Rp)" : "Ubah Harga (Rp)"}
                       </label>
                       <input
                         id={`harga-${item.id}`}
@@ -764,7 +873,7 @@ export default function ProfilPage() {
                         htmlFor={`stok-${item.id}`}
                         className="block text-[11px] font-bold text-[#334155]"
                       >
-                        Ubah Stok
+                        {isEn ? "Edit Stock" : "Ubah Stok"}
                       </label>
                       <input
                         id={`stok-${item.id}`}
@@ -788,15 +897,22 @@ export default function ProfilPage() {
                         });
                         if (!res.ok) {
                           setListingError(
-                            res.error ?? "Gagal memperbarui harga atau stok."
+                            res.error ??
+                              (isEn
+                                ? "Failed to update price or stock."
+                                : "Gagal memperbarui harga atau stok.")
                           );
                           return;
                         }
-                        setListingMessage(`Perubahan harga/stok "${item.title}" disimpan.`);
+                        setListingMessage(
+                          isEn
+                            ? `Updated price/stock for "${item.title}".`
+                            : `Perubahan harga/stok "${item.title}" disimpan.`
+                        );
                       }}
                       className="col-span-2 min-h-11 rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7] sm:col-span-1"
                     >
-                      Simpan Angka
+                      {isEn ? "Save Numbers" : "Simpan Angka"}
                     </button>
                   </div>
 
@@ -808,18 +924,31 @@ export default function ProfilPage() {
                         setListingMessage("");
                         const res = await toggleListingStockZero(item.id);
                         if (!res.ok) {
-                          setListingError(res.error ?? "Gagal mengubah status stok.");
+                          setListingError(
+                            res.error ??
+                              (isEn ? "Failed to update stock status." : "Gagal mengubah status stok.")
+                          );
                           return;
                         }
                         setListingMessage(
                           isSold
-                            ? `"${item.title}" diaktifkan kembali dengan stok 1.`
-                            : `"${item.title}" ditandai Terjual (stok 0).`
+                            ? isEn
+                              ? `"${item.title}" reactivated with stock 1.`
+                              : `"${item.title}" diaktifkan kembali dengan stok 1.`
+                            : isEn
+                              ? `"${item.title}" marked Sold Out (stock 0).`
+                              : `"${item.title}" ditandai Terjual (stok 0).`
                         );
                       }}
                       className="min-h-11 rounded-xl border-2 border-[#111827] bg-[#15803D] px-3.5 text-xs font-bold text-white"
                     >
-                      {isSold ? "Aktifkan Stok (1)" : "Tandai Terjual"}
+                      {isSold
+                        ? isEn
+                          ? "Restock (1)"
+                          : "Aktifkan Stok (1)"
+                        : isEn
+                          ? "Mark Sold Out"
+                          : "Tandai Terjual"}
                     </button>
                     <button
                       type="button"
@@ -830,18 +959,31 @@ export default function ProfilPage() {
                           hidden: !item.hidden,
                         });
                         if (!res.ok) {
-                          setListingError(res.error ?? "Gagal mengubah visibilitas.");
+                          setListingError(
+                            res.error ??
+                              (isEn ? "Failed to change visibility." : "Gagal mengubah visibilitas.")
+                          );
                           return;
                         }
                         setListingMessage(
                           item.hidden
-                            ? `"${item.title}" ditayangkan kembali di katalog.`
-                            : `"${item.title}" dinonaktifkan sementara.`
+                            ? isEn
+                              ? `"${item.title}" published back to the catalog.`
+                              : `"${item.title}" ditayangkan kembali di katalog.`
+                            : isEn
+                              ? `"${item.title}" deactivated temporarily.`
+                              : `"${item.title}" dinonaktifkan sementara.`
                         );
                       }}
                       className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-3.5 text-xs font-bold text-[#111827]"
                     >
-                      {item.hidden ? "Tayangkan Kembali" : "Nonaktifkan"}
+                      {item.hidden
+                        ? isEn
+                          ? "Reactivate"
+                          : "Tayangkan Kembali"
+                        : isEn
+                          ? "Deactivate"
+                          : "Nonaktifkan"}
                     </button>
                     <button
                       type="button"
@@ -850,14 +992,21 @@ export default function ProfilPage() {
                         setListingMessage("");
                         const res = await deleteMyListing(item.id);
                         if (!res.ok) {
-                          setListingError(res.error ?? "Gagal menghapus listing.");
+                          setListingError(
+                            res.error ??
+                              (isEn ? "Failed to delete listing." : "Gagal menghapus listing.")
+                          );
                           return;
                         }
-                        setListingMessage(`Listing "${item.title}" dihapus.`);
+                        setListingMessage(
+                          isEn
+                            ? `Listing "${item.title}" deleted.`
+                            : `Listing "${item.title}" dihapus.`
+                        );
                       }}
                       className="min-h-11 rounded-xl border border-[#991B1B]/60 bg-white px-3.5 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
                     >
-                      Hapus Listing
+                      {isEn ? "Delete Listing" : "Hapus Listing"}
                     </button>
                   </div>
                 </li>
@@ -875,12 +1024,12 @@ export default function ProfilPage() {
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="judul-hapus-akun" className="text-lg font-extrabold text-[#111827]">
-            Konfirmasi Hapus Akun Mandiri
+            {isEn ? "Confirm Self-Service Account Deletion" : "Konfirmasi Hapus Akun Mandiri"}
           </h2>
           <button
             type="button"
             onClick={() => setDeleteModalOpen(false)}
-            aria-label="Tutup dialog hapus akun"
+            aria-label={isEn ? "Close delete account dialog" : "Tutup dialog hapus akun"}
             className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold"
           >
             ✕
@@ -891,18 +1040,22 @@ export default function ProfilPage() {
           {deleteSuccess ? (
             <div role="status" className="rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4">
               <p className="text-sm font-extrabold text-[#15803D]">
-                Akun berhasil dianonimkan (UU PDP).
+                {isEn
+                  ? "Account successfully anonymized (UU PDP)."
+                  : "Akun berhasil dianonimkan (UU PDP)."}
               </p>
               <p className="mt-1 text-xs font-medium text-[#111827]">
-                Data pribadi (nama, NIM, email, dan WhatsApp) dihapus sambil menjaga
-                integritas riwayat transaksi selesai.
+                {isEn
+                  ? "Personal data (name, NIM, email, and WhatsApp) has been erased while preserving completed transaction audit integrity."
+                  : "Data pribadi (nama, NIM, email, dan WhatsApp) dihapus sambil menjaga integritas riwayat transaksi selesai."}
               </p>
             </div>
           ) : (
             <>
               <p className="text-xs font-medium leading-relaxed text-[#334155]">
-                Sesuai ketentuan UU PDP, Anda dapat menghapus akun dan menganonimkan PII
-                hanya bila tidak ada pesanan aktif yang sedang berlangsung.
+                {isEn
+                  ? "Per UU PDP rules, you can delete your account and anonymize PII only when no active COD orders are in progress."
+                  : "Sesuai ketentuan UU PDP, Anda dapat menghapus akun dan menganonimkan PII hanya bila tidak ada pesanan aktif yang sedang berlangsung."}
               </p>
               {deleteError && (
                 <div
@@ -918,14 +1071,14 @@ export default function ProfilPage() {
                   onClick={() => setDeleteModalOpen(false)}
                   className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold"
                 >
-                  Batal
+                  {isEn ? "Cancel" : "Batal"}
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleDeleteAccount()}
                   className="min-h-11 rounded-full border-2 border-[#111827] bg-[#991B1B] px-5 text-xs font-bold text-white"
                 >
-                  Hapus &amp; Anonimkan Akun
+                  {isEn ? "Delete & Anonymize Account" : "Hapus & Anonimkan Akun"}
                 </button>
               </div>
             </>

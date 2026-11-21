@@ -10,11 +10,11 @@ import {
 } from "@/app/masuk/actions";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import { PasswordInput } from "@/components/PasswordInput";
-import { FACULTIES } from "@/lib/preview-data";
+import { EN_KTM_STATUS_LABELS, FACULTIES, getDisplayLabel } from "@/lib/preview-data";
 
 type AuthMode = "masuk" | "daftar" | "reset";
 
-function AuthConfirmErrorBanner() {
+function AuthConfirmErrorBanner({ isEn }: { isEn: boolean }) {
   const params = useSearchParams();
   if (params.get("verif") !== "gagal") return null;
 
@@ -23,15 +23,17 @@ function AuthConfirmErrorBanner() {
       role="alert"
       className="rounded-2xl border-2 border-[#111827] bg-[#FEF2F2] p-4 text-xs font-bold text-[#991B1B]"
     >
-      Tautan verifikasi email atau pemulihan kata sandi tidak valid atau sudah kedaluwarsa.
-      Silakan kirim ulang atau coba masuk kembali.
+      {isEn
+        ? "Email verification or password recovery link is invalid or expired. Request a new link or try signing in again."
+        : "Tautan verifikasi email atau pemulihan kata sandi tidak valid atau sudah kedaluwarsa. Silakan kirim ulang atau coba masuk kembali."}
     </div>
   );
 }
 
 export default function MasukPage() {
-  const { authUserId, profile, refreshSupabaseData, signOutAccount } =
+  const { authUserId, profile, refreshSupabaseData, signOutAccount, locale } =
     useMarketplace();
+  const isEn = locale === "en";
 
   const [mode, setMode] = useState<AuthMode>("masuk");
   const [submitting, setSubmitting] = useState(false);
@@ -70,12 +72,18 @@ export default function MasukPage() {
     e.preventDefault();
     setLoginSuccess("");
     if (!loginIdentifier.trim()) {
-      setLoginError("Masukkan NIM atau alamat email aktif Anda.");
+      setLoginError(
+        isEn
+          ? "Enter your Student ID (NIM) or active email address."
+          : "Masukkan NIM atau alamat email aktif Anda."
+      );
       loginIdRef.current?.focus();
       return;
     }
     if (loginPassword.length < 6) {
-      setLoginError("Kata sandi minimal 6 karakter.");
+      setLoginError(
+        isEn ? "Password must be at least 6 characters." : "Kata sandi minimal 6 karakter."
+      );
       loginPwdRef.current?.focus();
       return;
     }
@@ -87,12 +95,18 @@ export default function MasukPage() {
         password: loginPassword,
       });
       if (!res.ok) {
-        setLoginError(res.error ?? "Gagal masuk ke akun.");
+        setLoginError(
+          res.error ?? (isEn ? "Failed to sign in." : "Gagal masuk ke akun.")
+        );
         loginIdRef.current?.focus();
         return;
       }
       setLoginError("");
-      setLoginSuccess("Berhasil masuk ke UnilakMart. Mengambil sesi akun Anda...");
+      setLoginSuccess(
+        isEn
+          ? "Signed in to UnilakMart. Loading your account session..."
+          : "Berhasil masuk ke UnilakMart. Mengambil sesi akun Anda..."
+      );
       await refreshSupabaseData();
     } finally {
       setSubmitting(false);
@@ -103,30 +117,52 @@ export default function MasukPage() {
     e.preventDefault();
     setRegNotice("");
     if (!/^\d{8,14}$/.test(regNim.trim())) {
-      setRegError("NIM mahasiswa harus berisi 8 sampai 14 digit angka.");
+      setRegError(
+        isEn
+          ? "Student ID (NIM) must be 8 to 14 numeric digits."
+          : "NIM mahasiswa harus berisi 8 sampai 14 digit angka."
+      );
       regNimRef.current?.focus();
       return;
     }
     if (regName.trim().length < 3 || !regProdi.trim()) {
-      setRegError("Lengkapi nama lengkap dan program studi sesuai KTM.");
+      setRegError(
+        isEn
+          ? "Fill in your full name and study program matching your Student ID card."
+          : "Lengkapi nama lengkap dan program studi sesuai KTM."
+      );
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {
-      setRegError("Masukkan format alamat email aktif yang valid untuk verifikasi.");
+      setRegError(
+        isEn
+          ? "Enter a valid active email address for verification."
+          : "Masukkan format alamat email aktif yang valid untuk verifikasi."
+      );
       return;
     }
     if (regWa.replace(/\D/g, "").length < 10) {
-      setRegError("Masukkan nomor WhatsApp aktif minimal 10 digit.");
+      setRegError(
+        isEn
+          ? "Enter an active WhatsApp number of at least 10 digits."
+          : "Masukkan nomor WhatsApp aktif minimal 10 digit."
+      );
       return;
     }
     if (regPassword.length < 8) {
-      setRegError("Kata sandi pendaftaran minimal 8 karakter.");
+      setRegError(
+        isEn
+          ? "Registration password must be at least 8 characters."
+          : "Kata sandi pendaftaran minimal 8 karakter."
+      );
       regPwdRef.current?.focus();
       return;
     }
     if (!regConsent) {
       setRegError(
-        "Persetujuan UU PDP wajib dicentang sebelum mendaftar di UnilakMart."
+        isEn
+          ? "UU PDP privacy consent must be checked before registering on UnilakMart."
+          : "Persetujuan UU PDP wajib dicentang sebelum mendaftar di UnilakMart."
       );
       return;
     }
@@ -144,15 +180,19 @@ export default function MasukPage() {
         pdpConsent: regConsent,
       });
       if (!res.ok) {
-        setRegError(res.error ?? "Pendaftaran gagal.");
+        setRegError(res.error ?? (isEn ? "Registration failed." : "Pendaftaran gagal."));
         regNimRef.current?.focus();
         return;
       }
       setRegError("");
       setRegNotice(
         res.needsEmailConfirm
-          ? `Pendaftaran atas NIM ${regNim.trim()} berhasil. Periksa kotak masuk ${regEmail.trim()} untuk tautan verifikasi email sebelum masuk.`
-          : `Akun atas NIM ${regNim.trim()} berhasil dibuat dan aktif. Lanjutkan unggah foto KTM di halaman Profil.`
+          ? isEn
+            ? `Registration for NIM ${regNim.trim()} succeeded. Check ${regEmail.trim()} for your email verification link before signing in.`
+            : `Pendaftaran atas NIM ${regNim.trim()} berhasil. Periksa kotak masuk ${regEmail.trim()} untuk tautan verifikasi email sebelum masuk.`
+          : isEn
+            ? `Account for NIM ${regNim.trim()} created and active. Next, upload your Student ID photo on Profile.`
+            : `Akun atas NIM ${regNim.trim()} berhasil dibuat dan aktif. Lanjutkan unggah foto KTM di halaman Profil.`
       );
       if (!res.needsEmailConfirm) {
         await refreshSupabaseData();
@@ -166,7 +206,11 @@ export default function MasukPage() {
     e.preventDefault();
     setResetSent(false);
     if (!resetIdentifier.trim()) {
-      setResetError("Masukkan NIM atau email akun Anda terlebih dahulu.");
+      setResetError(
+        isEn
+          ? "Enter your NIM or account email first."
+          : "Masukkan NIM atau email akun Anda terlebih dahulu."
+      );
       resetIdRef.current?.focus();
       return;
     }
@@ -175,7 +219,10 @@ export default function MasukPage() {
     try {
       const res = await resetPasswordAction({ identifier: resetIdentifier });
       if (!res.ok) {
-        setResetError(res.error ?? "Gagal memproses pemulihan.");
+        setResetError(
+          res.error ??
+            (isEn ? "Failed to process recovery request." : "Gagal memproses pemulihan.")
+        );
         resetIdRef.current?.focus();
         return;
       }
@@ -193,29 +240,31 @@ export default function MasukPage() {
     >
       <div className="space-y-1.5">
         <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
-          Akun Mahasiswa Unilak
+          {isEn ? "Unilak Student Account" : "Akun Mahasiswa Unilak"}
         </h1>
         <p className="text-sm font-medium text-[#475569]">
-          Masuk dengan NIM atau email, daftar akun baru dengan persetujuan UU PDP,
-          atau atur ulang kata sandi.
+          {isEn
+            ? "Sign in with NIM or email, register with UU PDP privacy consent, or reset your password."
+            : "Masuk dengan NIM atau email, daftar akun baru dengan persetujuan UU PDP, atau atur ulang kata sandi."}
         </p>
       </div>
 
       <Suspense fallback={null}>
-        <AuthConfirmErrorBanner />
+        <AuthConfirmErrorBanner isEn={isEn} />
       </Suspense>
 
       {authUserId && (
         <section
-          aria-label="Status sesi aktif"
+          aria-label={isEn ? "Active session status" : "Status sesi aktif"}
           className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4"
         >
           <div className="min-w-0">
             <p className="text-xs font-extrabold text-[#14532D]">
-              Sesi Supabase Aktif: {profile.name}
+              {isEn ? "Active Supabase Session:" : "Sesi Supabase Aktif:"} {profile.name}
             </p>
             <p className="truncate text-xs font-semibold text-[#334155]">
-              {profile.email} • Status KTM: {profile.ktmStatus}
+              {profile.email} • {isEn ? "KTM Status:" : "Status KTM:"}{" "}
+              {getDisplayLabel(locale, profile.ktmStatus, EN_KTM_STATUS_LABELS)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -223,14 +272,14 @@ export default function MasukPage() {
               href="/profil"
               className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 text-xs font-bold text-white"
             >
-              Ke Profil &amp; KTM
+              {isEn ? "Profile & KTM" : "Ke Profil & KTM"}
             </Link>
             <button
               type="button"
               onClick={() => void signOutAccount()}
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold text-[#111827]"
             >
-              Keluar Akun
+              {isEn ? "Sign Out" : "Keluar Akun"}
             </button>
           </div>
         </section>
@@ -238,14 +287,14 @@ export default function MasukPage() {
 
       <div
         role="tablist"
-        aria-label="Pilihan formulir akun"
+        aria-label={isEn ? "Account form options" : "Pilihan formulir akun"}
         className="grid grid-cols-3 gap-1.5 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-1.5"
       >
         {(
           [
-            { id: "masuk", label: "Masuk" },
-            { id: "daftar", label: "Daftar NIM" },
-            { id: "reset", label: "Lupa Sandi" },
+            { id: "masuk", label: isEn ? "Sign In" : "Masuk" },
+            { id: "daftar", label: isEn ? "Register NIM" : "Daftar NIM" },
+            { id: "reset", label: isEn ? "Reset Password" : "Lupa Sandi" },
           ] as const
         ).map((tab) => (
           <button
@@ -275,11 +324,12 @@ export default function MasukPage() {
         >
           <div>
             <h2 id="judul-tab-masuk" className="text-lg font-extrabold text-[#111827]">
-              Masuk ke Akun Kampus
+              {isEn ? "Sign In to Campus Account" : "Masuk ke Akun Kampus"}
             </h2>
             <p className="mt-0.5 text-xs font-medium text-[#475569]">
-              Sesi login diproses melalui Supabase Auth tanpa membocorkan status
-              keterdaftaran NIM maupun email Anda.
+              {isEn
+                ? "Login sessions run through Supabase Auth without exposing whether a NIM or email is registered."
+                : "Sesi login diproses melalui Supabase Auth tanpa membocorkan status keterdaftaran NIM maupun email Anda."}
             </p>
           </div>
 
@@ -288,7 +338,8 @@ export default function MasukPage() {
               htmlFor="login-identifier"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              NIM atau Email <span aria-hidden="true">*</span>
+              {isEn ? "Student ID (NIM) or Email" : "NIM atau Email"}{" "}
+              <span aria-hidden="true">*</span>
             </label>
             <input
               ref={loginIdRef}
@@ -308,7 +359,9 @@ export default function MasukPage() {
                 setLoginIdentifier(e.target.value);
                 setLoginError("");
               }}
-              placeholder="nama@student.unilak.ac.id atau NIM"
+              placeholder={
+                isEn ? "name@student.unilak.ac.id or NIM" : "nama@student.unilak.ac.id atau NIM"
+              }
               className="mt-1 min-h-11 w-full min-w-0 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium text-[#111827] sm:text-sm"
             />
           </div>
@@ -319,14 +372,14 @@ export default function MasukPage() {
                 htmlFor="login-password"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Kata Sandi <span aria-hidden="true">*</span>
+                {isEn ? "Password" : "Kata Sandi"} <span aria-hidden="true">*</span>
               </label>
               <button
                 type="button"
                 onClick={() => setMode("reset")}
                 className="inline-flex min-h-11 items-center text-xs font-bold text-[#15803D] underline"
               >
-                Lupa kata sandi?
+                {isEn ? "Forgot password?" : "Lupa kata sandi?"}
               </button>
             </div>
             <PasswordInput
@@ -335,6 +388,8 @@ export default function MasukPage() {
               name="password"
               visible={showLoginPwd}
               onToggleVisible={() => setShowLoginPwd((prev) => !prev)}
+              toggleShowLabel={isEn ? "Show password" : "Tampilkan kata sandi"}
+              toggleHideLabel={isEn ? "Hide password" : "Sembunyikan kata sandi"}
               autoComplete="current-password"
               enterKeyHint="done"
               required
@@ -345,7 +400,7 @@ export default function MasukPage() {
                 setLoginPassword(e.target.value);
                 setLoginError("");
               }}
-              placeholder="Minimal 6 karakter"
+              placeholder={isEn ? "Minimum 6 characters" : "Minimal 6 karakter"}
               className="font-medium"
             />
           </div>
@@ -356,7 +411,7 @@ export default function MasukPage() {
               role="alert"
               className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
             >
-              Perhatian: {loginError}
+              {isEn ? "Notice:" : "Perhatian:"} {loginError}
             </div>
           )}
 
@@ -371,13 +426,13 @@ export default function MasukPage() {
                   href="/profil"
                   className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-1.5 text-xs font-bold text-white"
                 >
-                  Buka Profil &amp; KTM
+                  {isEn ? "Open Profile & KTM" : "Buka Profil & KTM"}
                 </Link>
                 <Link
                   href="/"
                   className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-1.5 text-xs font-bold text-[#111827]"
                 >
-                  Ke Katalog
+                  {isEn ? "Go to Catalog" : "Ke Katalog"}
                 </Link>
               </div>
             </div>
@@ -388,7 +443,13 @@ export default function MasukPage() {
             disabled={submitting}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#166534] disabled:opacity-60"
           >
-            {submitting ? "Memproses..." : "Masuk ke UnilakMart"}
+            {submitting
+              ? isEn
+                ? "Processing..."
+                : "Memproses..."
+              : isEn
+                ? "Sign In to UnilakMart"
+                : "Masuk ke UnilakMart"}
           </button>
         </form>
       )}
@@ -403,11 +464,12 @@ export default function MasukPage() {
         >
           <div>
             <h2 id="judul-tab-daftar" className="text-lg font-extrabold text-[#111827]">
-              Daftar Mahasiswa Aktif Unilak
+              {isEn ? "Active Unilak Student Registration" : "Daftar Mahasiswa Aktif Unilak"}
             </h2>
             <p className="mt-0.5 text-xs font-medium text-[#475569]">
-              Satu NIM hanya dapat dipakai satu akun. Verifikasi foto KTM dilanjutkan di
-              halaman Profil setelah mendaftar.
+              {isEn
+                ? "Each NIM is strictly limited to one account. Continue Student ID photo verification in Profile after signing up."
+                : "Satu NIM hanya dapat dipakai satu akun. Verifikasi foto KTM dilanjutkan di halaman Profil setelah mendaftar."}
             </p>
           </div>
 
@@ -417,7 +479,8 @@ export default function MasukPage() {
                 htmlFor="reg-nim"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                NIM Mahasiswa (Wajib Unik) <span aria-hidden="true">*</span>
+                {isEn ? "Student NIM (Must Be Unique)" : "NIM Mahasiswa (Wajib Unik)"}{" "}
+                <span aria-hidden="true">*</span>
               </label>
               <input
                 ref={regNimRef}
@@ -435,11 +498,13 @@ export default function MasukPage() {
                   setRegNim(e.target.value);
                   setRegError("");
                 }}
-                placeholder="Contoh: 2355201099"
+                placeholder={isEn ? "Example: 2355201099" : "Contoh: 2355201099"}
                 className="mt-1 min-h-11 w-full min-w-0 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               />
               <p id="hint-reg-nim" className="mt-1 text-[11px] font-medium text-[#475569]">
-                Wajib 8 sampai 14 digit angka sesuai KTM Unilak.
+                {isEn
+                  ? "Must be 8 to 14 numeric digits per your Unilak Student ID."
+                  : "Wajib 8 sampai 14 digit angka sesuai KTM Unilak."}
               </p>
             </div>
 
@@ -448,7 +513,8 @@ export default function MasukPage() {
                 htmlFor="reg-name"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Nama Lengkap Sesuai KTM <span aria-hidden="true">*</span>
+                {isEn ? "Full Name (Per Student ID)" : "Nama Lengkap Sesuai KTM"}{" "}
+                <span aria-hidden="true">*</span>
               </label>
               <input
                 id="reg-name"
@@ -461,7 +527,7 @@ export default function MasukPage() {
                   setRegName(e.target.value);
                   setRegError("");
                 }}
-                placeholder="Nama lengkap mahasiswa"
+                placeholder={isEn ? "Student full name" : "Nama lengkap mahasiswa"}
                 className="mt-1 min-h-11 w-full min-w-0 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               />
             </div>
@@ -473,7 +539,7 @@ export default function MasukPage() {
                 htmlFor="reg-faculty"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Fakultas
+                {isEn ? "Faculty" : "Fakultas"}
               </label>
               <select
                 id="reg-faculty"
@@ -495,7 +561,7 @@ export default function MasukPage() {
                 htmlFor="reg-prodi"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Program Studi <span aria-hidden="true">*</span>
+                {isEn ? "Study Program" : "Program Studi"} <span aria-hidden="true">*</span>
               </label>
               <input
                 id="reg-prodi"
@@ -507,7 +573,7 @@ export default function MasukPage() {
                   setRegProdi(e.target.value);
                   setRegError("");
                 }}
-                placeholder="Contoh: Teknik Informatika"
+                placeholder={isEn ? "Example: Informatics Engineering" : "Contoh: Teknik Informatika"}
                 className="mt-1 min-h-11 w-full min-w-0 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               />
             </div>
@@ -519,7 +585,8 @@ export default function MasukPage() {
                 htmlFor="reg-email"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Email Aktif (Wajib Verifikasi) <span aria-hidden="true">*</span>
+                {isEn ? "Active Email (Verification Required)" : "Email Aktif (Wajib Verifikasi)"}{" "}
+                <span aria-hidden="true">*</span>
               </label>
               <input
                 id="reg-email"
@@ -533,7 +600,7 @@ export default function MasukPage() {
                   setRegEmail(e.target.value);
                   setRegError("");
                 }}
-                placeholder="nama@student.unilak.ac.id"
+                placeholder={isEn ? "name@student.unilak.ac.id" : "nama@student.unilak.ac.id"}
                 className="mt-1 min-h-11 w-full min-w-0 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               />
             </div>
@@ -543,7 +610,8 @@ export default function MasukPage() {
                 htmlFor="reg-wa"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Nomor WhatsApp Aktif <span aria-hidden="true">*</span>
+                {isEn ? "Active WhatsApp Number" : "Nomor WhatsApp Aktif"}{" "}
+                <span aria-hidden="true">*</span>
               </label>
               <input
                 id="reg-wa"
@@ -567,7 +635,7 @@ export default function MasukPage() {
               htmlFor="reg-password"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Kata Sandi <span aria-hidden="true">*</span>
+              {isEn ? "Password" : "Kata Sandi"} <span aria-hidden="true">*</span>
             </label>
             <PasswordInput
               ref={regPwdRef}
@@ -575,8 +643,8 @@ export default function MasukPage() {
               name="new_password"
               visible={showRegPwd}
               onToggleVisible={() => setShowRegPwd((prev) => !prev)}
-              toggleShowLabel="Tampilkan kata sandi baru"
-              toggleHideLabel="Sembunyikan kata sandi baru"
+              toggleShowLabel={isEn ? "Show new password" : "Tampilkan kata sandi baru"}
+              toggleHideLabel={isEn ? "Hide new password" : "Sembunyikan kata sandi baru"}
               autoComplete="new-password"
               minLength={8}
               aria-invalid={Boolean(regError)}
@@ -587,11 +655,13 @@ export default function MasukPage() {
                 setRegPassword(e.target.value);
                 setRegError("");
               }}
-              placeholder="Minimal 8 karakter"
+              placeholder={isEn ? "Minimum 8 characters" : "Minimal 8 karakter"}
               className="font-semibold"
             />
             <p id="hint-reg-pwd" className="mt-1 text-[11px] font-medium text-[#475569]">
-              Gunakan 8 karakter atau lebih. Tempel kata sandi dari pengelola sandi didukung.
+              {isEn
+                ? "Use 8 or more characters. Password manager paste is supported."
+                : "Gunakan 8 karakter atau lebih. Tempel kata sandi dari pengelola sandi didukung."}
             </p>
           </div>
 
@@ -606,9 +676,19 @@ export default function MasukPage() {
               className="mt-0.5 h-5 w-5 shrink-0 accent-[#15803D]"
             />
             <span>
-              Saya menyetujui kebijakan privasi UU No. 27 Tahun 2022 (UU PDP) bahwa
-              nomor WhatsApp saya akan dibagikan kepada lawan transaksi setelah pesanan
-              diterima (<strong>Dijadwalkan</strong>).
+              {isEn ? (
+                <>
+                  I agree to Indonesia Law No. 27/2022 (UU PDP) privacy terms that my
+                  WhatsApp number will be shared with the counterparty only after the order
+                  is approved (<strong>Scheduled</strong>).
+                </>
+              ) : (
+                <>
+                  Saya menyetujui kebijakan privasi UU No. 27 Tahun 2022 (UU PDP) bahwa
+                  nomor WhatsApp saya akan dibagikan kepada lawan transaksi setelah pesanan
+                  diterima (<strong>Dijadwalkan</strong>).
+                </>
+              )}
             </span>
           </label>
 
@@ -617,7 +697,7 @@ export default function MasukPage() {
               role="alert"
               className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
             >
-              Perhatian: {regError}
+              {isEn ? "Notice:" : "Perhatian:"} {regError}
             </div>
           )}
 
@@ -631,7 +711,7 @@ export default function MasukPage() {
                 href="/profil"
                 className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-1.5 text-xs font-bold text-white"
               >
-                Unggah Foto KTM di Profil
+                {isEn ? "Upload KTM Photo in Profile" : "Unggah Foto KTM di Profil"}
               </Link>
             </div>
           )}
@@ -641,7 +721,13 @@ export default function MasukPage() {
             disabled={submitting}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-5 py-2.5 text-sm font-extrabold text-[#111827] hover:bg-[#FDE047] disabled:opacity-60"
           >
-            {submitting ? "Mendaftarkan..." : "Daftar Akun Mahasiswa"}
+            {submitting
+              ? isEn
+                ? "Registering..."
+                : "Mendaftarkan..."
+              : isEn
+                ? "Register Student Account"
+                : "Daftar Akun Mahasiswa"}
           </button>
         </form>
       )}
@@ -656,11 +742,12 @@ export default function MasukPage() {
         >
           <div>
             <h2 id="judul-tab-reset" className="text-lg font-extrabold text-[#111827]">
-              Atur Ulang Kata Sandi
+              {isEn ? "Reset Password" : "Atur Ulang Kata Sandi"}
             </h2>
             <p className="mt-0.5 text-xs font-medium text-[#475569]">
-              Masukkan NIM atau email Anda. Sistem mengirim tautan pemulihan lewat
-              email tanpa membocorkan status keterdaftaran NIM.
+              {isEn
+                ? "Enter your NIM or email. The system sends a recovery link without revealing NIM registration status."
+                : "Masukkan NIM atau email Anda. Sistem mengirim tautan pemulihan lewat email tanpa membocorkan status keterdaftaran NIM."}
             </p>
           </div>
 
@@ -669,7 +756,8 @@ export default function MasukPage() {
               htmlFor="reset-identifier"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              NIM atau Email Terdaftar <span aria-hidden="true">*</span>
+              {isEn ? "Registered NIM or Email" : "NIM atau Email Terdaftar"}{" "}
+              <span aria-hidden="true">*</span>
             </label>
             <input
               ref={resetIdRef}
@@ -687,7 +775,9 @@ export default function MasukPage() {
                 setResetIdentifier(e.target.value);
                 setResetError("");
               }}
-              placeholder="2255201045 atau nama@student.unilak.ac.id"
+              placeholder={
+                isEn ? "2255201045 or name@student.unilak.ac.id" : "2255201045 atau nama@student.unilak.ac.id"
+              }
               className="mt-1 min-h-11 w-full min-w-0 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium text-[#111827] sm:text-sm"
             />
           </div>
@@ -697,7 +787,7 @@ export default function MasukPage() {
               role="alert"
               className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
             >
-              Perhatian: {resetError}
+              {isEn ? "Notice:" : "Perhatian:"} {resetError}
             </div>
           )}
 
@@ -706,8 +796,9 @@ export default function MasukPage() {
               role="status"
               className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3.5 text-xs font-bold text-[#14532D]"
             >
-              Jika NIM atau email cocok dengan akun aktif, tautan atur ulang kata
-              sandi dikirim ke email terdaftar.
+              {isEn
+                ? "If the NIM or email matches an active account, a password reset link has been sent to the registered email."
+                : "Jika NIM atau email cocok dengan akun aktif, tautan atur ulang kata sandi dikirim ke email terdaftar."}
             </div>
           )}
 
@@ -716,7 +807,13 @@ export default function MasukPage() {
             disabled={submitting}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#166534] disabled:opacity-60"
           >
-            {submitting ? "Mengirim..." : "Kirim Tautan Atur Ulang"}
+            {submitting
+              ? isEn
+                ? "Sending..."
+                : "Mengirim..."
+              : isEn
+                ? "Send Reset Link"
+                : "Kirim Tautan Atur Ulang"}
           </button>
         </form>
       )}

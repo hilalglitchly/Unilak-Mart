@@ -7,7 +7,11 @@ import { useState } from "react";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import {
   CONDITIONS,
+  EN_CATEGORY_LABELS,
+  EN_CONDITION_LABELS,
+  EN_KTM_STATUS_LABELS,
   FACULTIES,
+  getDisplayLabel,
   type ItemCondition,
   type ProductItem,
 } from "@/lib/preview-data";
@@ -23,7 +27,8 @@ const LISTING_CATEGORIES: { id: ProductItem["category"]; label: string }[] = [
 ];
 
 export default function JualPage() {
-  const { addListing, codSpots, profile } = useMarketplace();
+  const { addListing, codSpots, profile, locale } = useMarketplace();
+  const isEn = locale === "en";
   const activeSpots = codSpots.filter((s) => s.active);
 
   const [title, setTitle] = useState("");
@@ -55,7 +60,7 @@ export default function JualPage() {
 
     const remaining = Math.max(0, 5 - compressedImages.length);
     if (remaining === 0) {
-      setPhotoError("Maksimal 5 foto per listing.");
+      setPhotoError(isEn ? "Maximum 5 photos per listing." : "Maksimal 5 foto per listing.");
       return;
     }
 
@@ -91,7 +96,9 @@ export default function JualPage() {
       setCompressedImages((prev) => [...prev, ...processed].slice(0, 5));
     } catch {
       setPhotoError(
-        "Gagal mengompres gambar di browser. Pastikan berkas berformat JPG, PNG, atau WebP."
+        isEn
+          ? "Failed to compress image in browser. Make sure the file is JPG, PNG, or WebP."
+          : "Gagal mengompres gambar di browser. Pastikan berkas berformat JPG, PNG, atau WebP."
       );
     } finally {
       setCompressing(false);
@@ -111,25 +118,43 @@ export default function JualPage() {
     e.preventDefault();
     if (profile.ktmStatus !== "Terverifikasi") {
       setFormError(
-        "Akun harus berstatus Terverifikasi KTM untuk menayangkan listing. Periksa status di halaman Profil."
+        isEn
+          ? "Your account must be KTM Verified before publishing a listing. Check your status in Profile."
+          : "Akun harus berstatus Terverifikasi KTM untuk menayangkan listing. Periksa status di halaman Profil."
       );
       return;
     }
     if (!title.trim() || title.trim().length < 5) {
-      setFormError("Judul listing minimal 5 karakter agar mudah dicari mahasiswa.");
+      setFormError(
+        isEn
+          ? "Listing title must be at least 5 characters so students can easily find it."
+          : "Judul listing minimal 5 karakter agar mudah dicari mahasiswa."
+      );
       return;
     }
     if (!description.trim()) {
-      setFormError("Tambahkan deskripsi singkat kondisi barang atau layanan.");
+      setFormError(
+        isEn
+          ? "Add a brief description of the item's condition or service details."
+          : "Tambahkan deskripsi singkat kondisi barang atau layanan."
+      );
       return;
     }
     const numericPrice = isFree ? 0 : Number(priceText.replace(/\D/g, ""));
     if (!isFree && (!priceText.trim() || Number.isNaN(numericPrice) || numericPrice < 0)) {
-      setFormError("Isi harga nominal yang valid atau centang opsi Gratis Rp0.");
+      setFormError(
+        isEn
+          ? "Enter a valid price amount or check the Free Rp0 option."
+          : "Isi harga nominal yang valid atau centang opsi Gratis Rp0."
+      );
       return;
     }
     if (selectedSpots.length === 0) {
-      setFormError("Pilih minimal 1 Spot COD kampus yang Anda layani.");
+      setFormError(
+        isEn
+          ? "Select at least 1 campus COD spot you support."
+          : "Pilih minimal 1 Spot COD kampus yang Anda layani."
+      );
       return;
     }
 
@@ -151,7 +176,10 @@ export default function JualPage() {
       });
 
       if (!res.ok || !res.product) {
-        setFormError(res.error ?? "Gagal menerbitkan listing baru.");
+        setFormError(
+          res.error ??
+            (isEn ? "Failed to publish new listing." : "Gagal menerbitkan listing baru.")
+        );
         return;
       }
 
@@ -169,11 +197,12 @@ export default function JualPage() {
     >
       <div className="space-y-1.5">
         <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
-          Pasang Listing Barang atau UMKM
+          {isEn ? "Post an Item or UMKM Listing" : "Pasang Listing Barang atau UMKM"}
         </h1>
         <p className="text-sm font-medium text-[#475569]">
-          Foto otomatis dikompres di browser. Pastikan tidak menjual rokok/vape, miras,
-          atau jasa joki tugas kuliah.
+          {isEn
+            ? "Photos are compressed automatically in your browser. Please avoid prohibited items (cigarettes/vapes, alcohol, or paid assignment writing)."
+            : "Foto otomatis dikompres di browser. Pastikan tidak menjual rokok/vape, miras, atau jasa joki tugas kuliah."}
         </p>
       </div>
 
@@ -182,12 +211,26 @@ export default function JualPage() {
           role="alert"
           className="rounded-2xl border-2 border-[#111827] bg-[#FEF2F2] p-4 text-xs font-bold text-[#991B1B]"
         >
-          Akun saat ini berstatus <strong>{profile.ktmStatus}</strong>. Selesaikan
-          verifikasi KTM di{" "}
-          <Link href="/profil" className="underline">
-            halaman Profil
-          </Link>{" "}
-          sebelum menayangkan listing.
+          {isEn ? (
+            <>
+              Your account status is{" "}
+              <strong>{getDisplayLabel(locale, profile.ktmStatus, EN_KTM_STATUS_LABELS)}</strong>.
+              Complete KTM verification on your{" "}
+              <Link href="/profil" className="underline">
+                Profile page
+              </Link>{" "}
+              before publishing a listing.
+            </>
+          ) : (
+            <>
+              Akun saat ini berstatus <strong>{profile.ktmStatus}</strong>. Selesaikan
+              verifikasi KTM di{" "}
+              <Link href="/profil" className="underline">
+                halaman Profil
+              </Link>{" "}
+              sebelum menayangkan listing.
+            </>
+          )}
         </div>
       )}
 
@@ -197,24 +240,25 @@ export default function JualPage() {
           className="space-y-4 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-6"
         >
           <h2 className="text-xl font-extrabold text-[#15803D]">
-            Listing Berhasil Diterbitkan
+            {isEn ? "Listing Published Successfully" : "Listing Berhasil Diterbitkan"}
           </h2>
           <p className="text-sm font-medium text-[#111827]">
-            Listing Anda langsung tampil di katalog beranda
-            {isUmkm ? " dan masuk Etalase UMKM gratis" : ""}.
+            {isEn
+              ? `Your listing is now live in the home catalog${isUmkm ? " and featured in the free UMKM Storefront" : ""}.`
+              : `Listing Anda langsung tampil di katalog beranda${isUmkm ? " dan masuk Etalase UMKM gratis" : ""}.`}
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/listing/${createdListingId}`}
               className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white"
             >
-              Buka Halaman Detail Listing
+              {isEn ? "Open Listing Detail" : "Buka Halaman Detail Listing"}
             </Link>
             <Link
               href="/"
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827]"
             >
-              Kembali ke Beranda
+              {isEn ? "Back to Home" : "Kembali ke Beranda"}
             </Link>
             <button
               type="button"
@@ -227,7 +271,7 @@ export default function JualPage() {
               }}
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827]"
             >
-              Buat Listing Lain
+              {isEn ? "Create Another Listing" : "Buat Listing Lain"}
             </button>
           </div>
         </div>
@@ -243,7 +287,7 @@ export default function JualPage() {
               htmlFor="upload-foto-listing"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Foto Barang / UMKM (Maks. 5 Foto)
+              {isEn ? "Item / UMKM Photos (Max 5 Photos)" : "Foto Barang / UMKM (Maks. 5 Foto)"}
             </label>
             <input
               id="upload-foto-listing"
@@ -255,7 +299,7 @@ export default function JualPage() {
             />
             {compressing && (
               <p role="status" className="text-xs font-bold text-[#15803D]">
-                Mengompres gambar di browser...
+                {isEn ? "Compressing images in browser..." : "Mengompres gambar di browser..."}
               </p>
             )}
             {photoError && (
@@ -273,13 +317,13 @@ export default function JualPage() {
                     <Image
                       unoptimized
                       src={img.url}
-                      alt={`Pratinjau foto ${idx + 1}`}
+                      alt={isEn ? `Photo preview ${idx + 1}` : `Pratinjau foto ${idx + 1}`}
                       width={160}
                       height={110}
                       className="h-24 w-full rounded-lg object-cover"
                     />
                     <p className="mt-1 text-[11px] font-bold text-[#14532D]">
-                      {img.originalKb} KB ke {img.compressedKb} KB
+                      {img.originalKb} KB {isEn ? "to" : "ke"} {img.compressedKb} KB
                     </p>
                     <button
                       type="button"
@@ -288,7 +332,7 @@ export default function JualPage() {
                       }
                       className="mt-1 min-h-11 w-full rounded-lg border border-[#111827] bg-white text-xs font-bold text-[#991B1B]"
                     >
-                      Hapus
+                      {isEn ? "Remove" : "Hapus"}
                     </button>
                   </li>
                 ))}
@@ -301,7 +345,8 @@ export default function JualPage() {
               htmlFor="judul-listing"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Judul Barang / Jasa <span aria-hidden="true">*</span>
+              {isEn ? "Item / Service Title" : "Judul Barang / Jasa"}{" "}
+              <span aria-hidden="true">*</span>
             </label>
             <input
               id="judul-listing"
@@ -312,7 +357,11 @@ export default function JualPage() {
                 setTitle(e.target.value);
                 setFormError("");
               }}
-              placeholder="Contoh: Buku Algoritma & Struktur Data Edisi 2 Mulus"
+              placeholder={
+                isEn
+                  ? "Example: Algorithms & Data Structures Textbook 2nd Ed"
+                  : "Contoh: Buku Algoritma & Struktur Data Edisi 2 Mulus"
+              }
               className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium text-[#111827] sm:text-sm"
             />
           </div>
@@ -323,7 +372,7 @@ export default function JualPage() {
                 htmlFor="kategori-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Kategori
+                {isEn ? "Category" : "Kategori"}
               </label>
               <select
                 id="kategori-listing"
@@ -333,7 +382,7 @@ export default function JualPage() {
               >
                 {LISTING_CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.label}
+                    {isEn ? EN_CATEGORY_LABELS[c.id] : c.label}
                   </option>
                 ))}
               </select>
@@ -344,7 +393,7 @@ export default function JualPage() {
                 htmlFor="fakultas-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Fakultas Terkait
+                {isEn ? "Related Faculty" : "Fakultas Terkait"}
               </label>
               <select
                 id="fakultas-listing"
@@ -365,7 +414,7 @@ export default function JualPage() {
                 htmlFor="kondisi-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Kondisi Barang
+                {isEn ? "Item Condition" : "Kondisi Barang"}
               </label>
               <select
                 id="kondisi-listing"
@@ -375,7 +424,7 @@ export default function JualPage() {
               >
                 {CONDITIONS.map((cond) => (
                   <option key={cond} value={cond}>
-                    {cond}
+                    {getDisplayLabel(locale, cond, EN_CONDITION_LABELS)}
                   </option>
                 ))}
               </select>
@@ -388,7 +437,7 @@ export default function JualPage() {
                 htmlFor="harga-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Harga Rupiah (Mendukung Rp0 Hibah)
+                {isEn ? "Price in IDR (Supports Free Rp0)" : "Harga Rupiah (Mendukung Rp0 Hibah)"}
               </label>
               <input
                 id="harga-listing"
@@ -397,7 +446,7 @@ export default function JualPage() {
                 disabled={isFree}
                 value={isFree ? "0" : priceText}
                 onChange={(e) => setPriceText(e.target.value)}
-                placeholder="Contoh: 45000"
+                placeholder={isEn ? "Example: 45000" : "Contoh: 45000"}
                 className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-bold text-[#111827] disabled:bg-[#E2E8F0] sm:text-sm"
               />
               <label className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#111827]">
@@ -407,7 +456,7 @@ export default function JualPage() {
                   onChange={(e) => setIsFree(e.target.checked)}
                   className="h-5 w-5 accent-[#15803D]"
                 />
-                <span>Hibah / Gratis (Rp0)</span>
+                <span>{isEn ? "Giveaway / Free (Rp0)" : "Hibah / Gratis (Rp0)"}</span>
               </label>
             </div>
 
@@ -416,7 +465,7 @@ export default function JualPage() {
                 htmlFor="stok-listing"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Jumlah Stok Tersedia
+                {isEn ? "Available Stock" : "Jumlah Stok Tersedia"}
               </label>
               <input
                 id="stok-listing"
@@ -435,7 +484,11 @@ export default function JualPage() {
                   onChange={(e) => setAlwaysAvailable(e.target.checked)}
                   className="h-5 w-5 accent-[#15803D]"
                 />
-                <span>Selalu Tersedia (Produk UMKM / Jasa / Jajanan)</span>
+                <span>
+                  {isEn
+                    ? "Always Available (UMKM / Service / Snacks)"
+                    : "Selalu Tersedia (Produk UMKM / Jasa / Jajanan)"}
+                </span>
               </label>
             </div>
           </div>
@@ -449,8 +502,17 @@ export default function JualPage() {
                 className="mt-0.5 h-5 w-5 shrink-0 accent-[#15803D]"
               />
               <span>
-                Tampilkan di <strong>Etalase UMKM Gratis</strong> bagian atas beranda
-                (khusus produk, jajanan, atau jasa UMKM mahasiswa)
+                {isEn ? (
+                  <>
+                    Show in the top <strong>Free MSME Showcase</strong> strip on home
+                    (for student UMKM goods, snacks, or services)
+                  </>
+                ) : (
+                  <>
+                    Tampilkan di <strong>Etalase UMKM Gratis</strong> bagian atas beranda
+                    (khusus produk, jajanan, atau jasa UMKM mahasiswa)
+                  </>
+                )}
               </span>
             </label>
           </div>
@@ -460,7 +522,10 @@ export default function JualPage() {
               htmlFor="deskripsi-listing"
               className="block text-xs font-extrabold text-[#111827]"
             >
-              Deskripsi Kondisi, Kelengkapan &amp; Detail <span aria-hidden="true">*</span>
+              {isEn
+                ? "Condition, Completeness & Details"
+                : "Deskripsi Kondisi, Kelengkapan & Detail"}{" "}
+              <span aria-hidden="true">*</span>
             </label>
             <textarea
               id="deskripsi-listing"
@@ -471,14 +536,18 @@ export default function JualPage() {
                 setDescription(e.target.value);
                 setFormError("");
               }}
-              placeholder="Jelaskan kondisi nyata barang, minus jika ada, atau jadwal layanan."
+              placeholder={
+                isEn
+                  ? "Describe real item condition, flaws if any, or service schedule."
+                  : "Jelaskan kondisi nyata barang, minus jika ada, atau jadwal layanan."
+              }
               className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium text-[#111827] sm:text-sm"
             />
           </div>
 
           <fieldset className="space-y-2 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-4">
             <legend className="px-1 text-xs font-extrabold text-[#111827]">
-              Titik Spot COD Kampus yang Dilayani
+              {isEn ? "Supported Campus COD Spots" : "Titik Spot COD Kampus yang Dilayani"}
             </legend>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {activeSpots.map((spot) => (
@@ -503,7 +572,7 @@ export default function JualPage() {
               role="alert"
               className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
             >
-              Perhatian: {formError}
+              {isEn ? "Notice:" : "Perhatian:"} {formError}
             </div>
           )}
 
@@ -512,14 +581,20 @@ export default function JualPage() {
               href="/"
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-5 py-2 text-xs font-bold text-[#111827]"
             >
-              Batal
+              {isEn ? "Cancel" : "Batal"}
             </Link>
             <button
               type="submit"
               disabled={submitting}
               className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-6 py-2.5 text-sm font-bold text-white shadow-[3px_3px_0px_#111827] hover:bg-[#166534] disabled:opacity-60"
             >
-              {submitting ? "Mengunggah & Menerbitkan..." : "Terbitkan Listing Sekarang"}
+              {submitting
+                ? isEn
+                  ? "Uploading & Publishing..."
+                  : "Mengunggah & Menerbitkan..."
+                : isEn
+                  ? "Publish Listing Now"
+                  : "Terbitkan Listing Sekarang"}
             </button>
           </div>
         </form>

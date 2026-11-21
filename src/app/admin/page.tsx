@@ -5,8 +5,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { getAdminKtmSignedUrlAction } from "@/app/admin/actions";
 import { useMarketplace } from "@/components/MarketplaceProvider";
+import {
+  EN_CATEGORY_LABELS,
+  EN_KTM_STATUS_LABELS,
+  getDisplayLabel,
+  type CategoryId,
+} from "@/lib/preview-data";
 
 type AdminTab = "semua" | "ktm" | "laporan" | "pengguna" | "spot";
+
+const EN_REPORT_STATUS: Record<string, string> = {
+  Baru: "New",
+  Disembunyikan: "Hidden",
+  Selesai: "Resolved",
+};
 
 export default function AdminPage() {
   const {
@@ -28,7 +40,9 @@ export default function AdminPage() {
     toggleUserUmkm,
     toggleUserSuspended,
     runMaintenance,
+    locale,
   } = useMarketplace();
+  const isEn = locale === "en";
 
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -68,12 +82,16 @@ export default function AdminPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-[#111827] sm:text-3xl">
-            Panel Administrator UnilakMart
+            {isEn ? "UnilakMart Administrator Panel" : "Panel Administrator UnilakMart"}
           </h1>
           <p className="mt-1 text-sm font-medium text-[#475569]">
             {authUserId
-              ? "Moderasi langsung ke database PostgreSQL Supabase & bucket privat KTM."
-              : "Mode pratinjau tamu. Masuk sebagai akun Administrator untuk memproses antrean KTM riil."}
+              ? isEn
+                ? "Direct moderation connected to Supabase PostgreSQL database & private KTM bucket."
+                : "Moderasi langsung ke database PostgreSQL Supabase & bucket privat KTM."
+              : isEn
+                ? "Guest preview mode. Sign in with an Administrator account to process live KTM requests."
+                : "Mode pratinjau tamu. Masuk sebagai akun Administrator untuk memproses antrean KTM riil."}
           </p>
         </div>
 
@@ -81,7 +99,7 @@ export default function AdminPage() {
           href="/"
           className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#F8FAFC]"
         >
-          Kembali ke Beranda
+          {isEn ? "Back to Home" : "Kembali ke Beranda"}
         </Link>
       </div>
 
@@ -91,13 +109,24 @@ export default function AdminPage() {
           className="space-y-3 rounded-2xl border-2 border-[#111827] bg-[#FEF2F2] p-6"
         >
           <h2 className="text-lg font-extrabold text-[#991B1B]">
-            Akses Khusus Administrator
+            {isEn ? "Administrator Access Only" : "Akses Khusus Administrator"}
           </h2>
           <p className="text-xs font-semibold leading-relaxed text-[#111827]">
-            Akun aktif ({profile.email}) berperan sebagai mahasiswa biasa (
-            <code>system_role = &apos;user&apos;</code>). Sesuai rancangan keamanan,
-            halaman moderasi hanya dapat dibuka oleh akun Administrator yang ditunjuk di
-            tabel <code>public.profiles</code>.
+            {isEn ? (
+              <>
+                The active account ({profile.email}) is a standard student role (
+                <code>system_role = &apos;user&apos;</code>). Per security design,
+                moderation tools can only be opened by a designated Administrator in{" "}
+                <code>public.profiles</code>.
+              </>
+            ) : (
+              <>
+                Akun aktif ({profile.email}) berperan sebagai mahasiswa biasa (
+                <code>system_role = &apos;user&apos;</code>). Sesuai rancangan keamanan,
+                halaman moderasi hanya dapat dibuka oleh akun Administrator yang ditunjuk di
+                tabel <code>public.profiles</code>.
+              </>
+            )}
           </p>
           <p className="rounded-xl border border-[#111827]/25 bg-white p-3 font-mono text-[11px] text-[#334155]">
             update public.profiles set system_role = &apos;admin&apos;, ktm_status =
@@ -110,24 +139,26 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-3.5 text-xs font-bold text-[#334155]">
             <div className="flex flex-wrap items-center gap-4">
               <span>
-                Pengguna:{" "}
+                {isEn ? "Users:" : "Pengguna:"}{" "}
                 <strong className="text-[#111827]">{adminUsers.length}</strong>{" "}
-                <span className="text-[#15803D]">({verifiedUserCount} Verif)</span>
+                <span className="text-[#15803D]">
+                  ({verifiedUserCount} {isEn ? "Verif" : "Verif"})
+                </span>
               </span>
               <span>
-                Listing Aktif:{" "}
+                {isEn ? "Active Listings:" : "Listing Aktif:"}{" "}
                 <strong className="text-[#15803D]">{activeListingCount}</strong>
               </span>
               <span>
-                Antrean KTM:{" "}
+                {isEn ? "KTM Queue:" : "Antrean KTM:"}{" "}
                 <strong className="text-[#111827]">{pendingKtmCount}</strong>
               </span>
               <span>
-                Pesanan COD:{" "}
+                {isEn ? "COD Orders:" : "Pesanan COD:"}{" "}
                 <strong className="text-[#111827]">{orders.length}</strong>
               </span>
               <span>
-                Laporan Baru:{" "}
+                {isEn ? "New Reports:" : "Laporan Baru:"}{" "}
                 <strong className="text-[#991B1B]">{openReportCount}</strong>
               </span>
             </div>
@@ -144,13 +175,18 @@ export default function AdminPage() {
                     const res = await runMaintenance();
                     if (!res.ok) {
                       setAdminError(
-                        res.error ?? "Gagal menjalankan pemeliharaan otomatis."
+                        res.error ??
+                          (isEn
+                            ? "Failed to run automated maintenance."
+                            : "Gagal menjalankan pemeliharaan otomatis.")
                       );
                       return;
                     }
                     const s = res.summary;
                     setAdminNotice(
-                      `Pemeliharaan selesai: ${s?.expiredOrders ?? 0} kedaluwarsa (24j), ${s?.completedOrders ?? 0} selesai otomatis (48j), ${s?.deletedRejectedKtmFiles ?? 0} berkas KTM ditolak (>7h) dihapus.`
+                      isEn
+                        ? `Maintenance done: ${s?.expiredOrders ?? 0} expired (24h), ${s?.completedOrders ?? 0} auto-completed (48h), ${s?.deletedRejectedKtmFiles ?? 0} rejected KTM files (>7d) deleted.`
+                        : `Pemeliharaan selesai: ${s?.expiredOrders ?? 0} kedaluwarsa (24j), ${s?.completedOrders ?? 0} selesai otomatis (48j), ${s?.deletedRejectedKtmFiles ?? 0} berkas KTM ditolak (>7h) dihapus.`
                     );
                   } finally {
                     setMaintLoading(false);
@@ -159,22 +195,44 @@ export default function AdminPage() {
                 className="min-h-11 rounded-xl border-2 border-[#111827] bg-[#FEF9C3] px-3 text-xs font-extrabold text-[#111827] hover:bg-[#FEF08A] disabled:opacity-60"
               >
                 {maintLoading
-                  ? "Memproses..."
-                  : "Jalankan Pemeliharaan (24j/48j/KTM)"}
+                  ? isEn
+                    ? "Running..."
+                    : "Memproses..."
+                  : isEn
+                    ? "Run Maintenance (24h/48h/KTM)"
+                    : "Jalankan Pemeliharaan (24j/48j/KTM)"}
               </button>
 
               <div
                 role="tablist"
-                aria-label="Filter bagian admin"
+                aria-label={isEn ? "Admin section filter" : "Filter bagian admin"}
                 className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap"
               >
                 {(
                   [
-                    { id: "semua", label: "Semua" },
-                    { id: "ktm", label: `Antrean KTM (${pendingKtmCount})` },
-                    { id: "laporan", label: `Laporan (${openReportCount})` },
-                    { id: "pengguna", label: `Pengguna (${adminUsers.length})` },
-                    { id: "spot", label: "Spot COD & Kategori" },
+                    { id: "semua", label: isEn ? "All" : "Semua" },
+                    {
+                      id: "ktm",
+                      label: isEn
+                        ? `KTM Queue (${pendingKtmCount})`
+                        : `Antrean KTM (${pendingKtmCount})`,
+                    },
+                    {
+                      id: "laporan",
+                      label: isEn
+                        ? `Reports (${openReportCount})`
+                        : `Laporan (${openReportCount})`,
+                    },
+                    {
+                      id: "pengguna",
+                      label: isEn
+                        ? `Users (${adminUsers.length})`
+                        : `Pengguna (${adminUsers.length})`,
+                    },
+                    {
+                      id: "spot",
+                      label: isEn ? "COD Spots & Categories" : "Spot COD & Kategori",
+                    },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -201,7 +259,7 @@ export default function AdminPage() {
               role="alert"
               className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3.5 text-xs font-extrabold text-[#991B1B]"
             >
-              Perhatian: {adminError}
+              {isEn ? "Notice:" : "Perhatian:"} {adminError}
             </div>
           )}
 
@@ -226,12 +284,14 @@ export default function AdminPage() {
                   id="judul-antrean-ktm"
                   className="text-lg font-extrabold text-[#111827]"
                 >
-                  Antrean Verifikasi Foto KTM
+                  {isEn ? "KTM Photo Verification Queue" : "Antrean Verifikasi Foto KTM"}
                 </h2>
 
                 {ktmQueue.length === 0 ? (
                   <p className="rounded-xl border border-[#111827]/20 bg-[#F8FAFC] p-4 text-xs font-semibold text-[#475569]">
-                    Belum ada antrean verifikasi KTM yang masuk.
+                    {isEn
+                      ? "No KTM verification requests in the queue yet."
+                      : "Belum ada antrean verifikasi KTM yang masuk."}
                   </p>
                 ) : (
                   <ul className="space-y-3">
@@ -246,12 +306,12 @@ export default function AdminPage() {
                               {item.name} • NIM {item.nim}
                             </p>
                             <p className="text-xs font-semibold text-[#475569]">
-                              {item.prodi} ({item.faculty}) • Berkas:{" "}
+                              {item.prodi} ({item.faculty}) • {isEn ? "File:" : "Berkas:"}{" "}
                               <code>{item.photoLabel}</code>
                             </p>
                           </div>
                           <span className="rounded-md border border-[#111827] bg-[#FACC15] px-2.5 py-0.5 text-xs font-extrabold">
-                            {item.status}
+                            {getDisplayLabel(locale, item.status, EN_KTM_STATUS_LABELS)}
                           </span>
                         </div>
 
@@ -260,7 +320,7 @@ export default function AdminPage() {
                             <Image
                               unoptimized
                               src={signedUrls[item.id]}
-                              alt={`Foto KTM NIM ${item.nim}`}
+                              alt={isEn ? `KTM photo NIM ${item.nim}` : `Foto KTM NIM ${item.nim}`}
                               width={420}
                               height={240}
                               className="max-h-56 w-auto rounded-lg object-contain"
@@ -275,7 +335,7 @@ export default function AdminPage() {
                         )}
                         {item.rejectionReason && (
                           <p className="text-xs font-bold text-[#991B1B]">
-                            Alasan ditolak: {item.rejectionReason}
+                            {isEn ? "Rejection reason:" : "Alasan ditolak:"} {item.rejectionReason}
                           </p>
                         )}
 
@@ -292,7 +352,10 @@ export default function AdminPage() {
                                     );
                                     if (!res.ok || !res.url) {
                                       setAdminError(
-                                        res.error ?? "Gagal memuat signed URL KTM."
+                                        res.error ??
+                                          (isEn
+                                            ? "Failed to load KTM signed URL."
+                                            : "Gagal memuat signed URL KTM.")
                                       );
                                       return;
                                     }
@@ -303,7 +366,7 @@ export default function AdminPage() {
                                   }}
                                   className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-1.5 text-xs font-bold text-[#111827]"
                                 >
-                                  Lihat Foto KTM
+                                  {isEn ? "View KTM Photo" : "Lihat Foto KTM"}
                                 </button>
                               )}
                               <button
@@ -313,23 +376,28 @@ export default function AdminPage() {
                                   const res = await approveKtm(item.id);
                                   if (!res.ok) {
                                     setAdminError(
-                                      res.error ?? "Gagal menyetujui KTM."
+                                      res.error ??
+                                        (isEn ? "Failed to approve KTM." : "Gagal menyetujui KTM.")
                                     );
                                     return;
                                   }
                                   setAdminNotice(
-                                    `KTM ${item.nim} disetujui dan foto otomatis dihapus dari bucket privat.`
+                                    isEn
+                                      ? `KTM ${item.nim} approved and photo automatically removed from the private bucket.`
+                                      : `KTM ${item.nim} disetujui dan foto otomatis dihapus dari bucket privat.`
                                   );
                                 }}
                                 className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-1.5 text-xs font-bold text-white"
                               >
-                                Setujui &amp; Hapus Foto Otomatis
+                                {isEn ? "Approve & Auto-Delete Photo" : "Setujui & Hapus Foto Otomatis"}
                               </button>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
                               <label htmlFor={`tolak-${item.id}`} className="sr-only">
-                                Alasan penolakan untuk {item.nim}
+                                {isEn
+                                  ? `Rejection reason for ${item.nim}`
+                                  : `Alasan penolakan untuk ${item.nim}`}
                               </label>
                               <input
                                 id={`tolak-${item.id}`}
@@ -341,7 +409,11 @@ export default function AdminPage() {
                                     [item.id]: e.target.value,
                                   }))
                                 }
-                                placeholder="Isi alasan penolakan jika ditolak..."
+                                placeholder={
+                                  isEn
+                                    ? "Enter rejection reason if declining..."
+                                    : "Isi alasan penolakan jika ditolak..."
+                                }
                                 className="min-h-11 min-w-0 flex-1 rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
                               />
                               <button
@@ -354,17 +426,20 @@ export default function AdminPage() {
                                   const res = await rejectKtm(item.id, reason);
                                   if (!res.ok) {
                                     setAdminError(
-                                      res.error ?? "Gagal menolak KTM."
+                                      res.error ??
+                                        (isEn ? "Failed to reject KTM." : "Gagal menolak KTM.")
                                     );
                                     return;
                                   }
                                   setAdminNotice(
-                                    `KTM ${item.nim} ditolak dengan alasan tercatat.`
+                                    isEn
+                                      ? `KTM ${item.nim} rejected with logged reason.`
+                                      : `KTM ${item.nim} ditolak dengan alasan tercatat.`
                                   );
                                 }}
                                 className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B] bg-white px-4 py-1.5 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
                               >
-                                Tolak
+                                {isEn ? "Reject" : "Tolak"}
                               </button>
                             </div>
                           </div>
@@ -393,11 +468,13 @@ export default function AdminPage() {
                       id="judul-moderasi"
                       className="text-lg font-extrabold text-[#111827]"
                     >
-                      Moderasi Laporan
+                      {isEn ? "Report Moderation" : "Moderasi Laporan"}
                     </h2>
                     {reports.length === 0 ? (
                       <p className="rounded-xl border border-[#111827]/20 bg-[#F8FAFC] p-4 text-xs font-semibold text-[#475569]">
-                        Belum ada laporan pelanggaran masuk.
+                        {isEn
+                          ? "No violation reports submitted yet."
+                          : "Belum ada laporan pelanggaran masuk."}
                       </p>
                     ) : (
                       <ul className="space-y-3">
@@ -411,7 +488,7 @@ export default function AdminPage() {
                                 [{rep.targetType}] {rep.targetTitle}
                               </span>
                               <span className="rounded border border-[#111827]/40 bg-white px-2 py-0.5 font-extrabold">
-                                {rep.status}
+                                {getDisplayLabel(locale, rep.status, EN_REPORT_STATUS)}
                               </span>
                             </div>
                             <p className="font-medium text-[#334155]">{rep.reason}</p>
@@ -429,17 +506,21 @@ export default function AdminPage() {
                                       if (!res.ok) {
                                         setAdminError(
                                           res.error ??
-                                            "Gagal menyembunyikan listing."
+                                            (isEn
+                                              ? "Failed to hide listing."
+                                              : "Gagal menyembunyikan listing.")
                                         );
                                         return;
                                       }
                                       setAdminNotice(
-                                        `Listing "${rep.targetTitle}" disembunyikan dari katalog publik.`
+                                        isEn
+                                          ? `Listing "${rep.targetTitle}" hidden from public catalog.`
+                                          : `Listing "${rep.targetTitle}" disembunyikan dari katalog publik.`
                                       );
                                     }}
                                     className="min-h-11 rounded-full border-2 border-[#111827] bg-[#991B1B] px-3.5 text-xs font-bold text-white"
                                   >
-                                    Sembunyikan Listing
+                                    {isEn ? "Hide Listing" : "Sembunyikan Listing"}
                                   </button>
                                 )}
                                 <button
@@ -452,17 +533,22 @@ export default function AdminPage() {
                                     );
                                     if (!res.ok) {
                                       setAdminError(
-                                        res.error ?? "Gagal menandai laporan."
+                                        res.error ??
+                                          (isEn
+                                            ? "Failed to resolve report."
+                                            : "Gagal menandai laporan.")
                                       );
                                       return;
                                     }
                                     setAdminNotice(
-                                      `Laporan "${rep.targetTitle}" ditandai Selesai.`
+                                      isEn
+                                        ? `Report "${rep.targetTitle}" marked Resolved.`
+                                        : `Laporan "${rep.targetTitle}" ditandai Selesai.`
                                     );
                                   }}
                                   className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-3.5 text-xs font-bold text-[#111827]"
                                 >
-                                  Tandai Selesai
+                                  {isEn ? "Mark Resolved" : "Tandai Selesai"}
                                 </button>
                               </div>
                             )}
@@ -482,7 +568,9 @@ export default function AdminPage() {
                       id="judul-spot-admin"
                       className="text-lg font-extrabold text-[#111827]"
                     >
-                      Daftar Spot COD Kampus &amp; Kategori
+                      {isEn
+                        ? "Campus COD Spots & Catalog Categories"
+                        : "Daftar Spot COD Kampus & Kategori"}
                     </h2>
                     <ul className="space-y-2">
                       {codSpots.map((spot) => (
@@ -505,7 +593,10 @@ export default function AdminPage() {
                               const res = await toggleCodSpot(spot.id);
                               if (!res.ok) {
                                 setAdminError(
-                                  res.error ?? "Gagal mengubah status Spot COD."
+                                  res.error ??
+                                    (isEn
+                                      ? "Failed to toggle COD spot status."
+                                      : "Gagal mengubah status Spot COD.")
                                 );
                               }
                             }}
@@ -516,7 +607,7 @@ export default function AdminPage() {
                                 : "bg-[#E2E8F0] text-[#334155]"
                             }`}
                           >
-                            {spot.active ? "Aktif" : "Nonaktif"}
+                            {spot.active ? (isEn ? "Active" : "Aktif") : isEn ? "Inactive" : "Nonaktif"}
                           </button>
                         </li>
                       ))}
@@ -533,41 +624,50 @@ export default function AdminPage() {
                           hours: spotHours,
                         });
                         if (!res.ok) {
-                          setAdminError(res.error ?? "Gagal menambah Spot COD.");
+                          setAdminError(
+                            res.error ??
+                              (isEn ? "Failed to add COD spot." : "Gagal menambah Spot COD.")
+                          );
                           return;
                         }
                         setSpotName("");
                         setSpotLocation("");
-                        setAdminNotice("Spot COD kampus baru berhasil ditambahkan.");
+                        setAdminNotice(
+                          isEn
+                            ? "New campus COD spot added."
+                            : "Spot COD kampus baru berhasil ditambahkan."
+                        );
                       }}
                       className="space-y-2 rounded-xl border border-[#111827]/25 bg-white p-3.5 text-xs"
                     >
                       <p className="font-extrabold text-[#111827]">
-                        + Tambah Spot COD Baru (FR-19)
+                        {isEn ? "+ Add New COD Spot (FR-19)" : "+ Tambah Spot COD Baru (FR-19)"}
                       </p>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         <input
                           type="text"
                           value={spotName}
                           onChange={(e) => setSpotName(e.target.value)}
-                          placeholder="Nama spot (mis. Lobi Rektorat)"
-                          aria-label="Nama Spot COD baru"
+                          placeholder={
+                            isEn ? "Spot name (e.g. Rectorate Lobby)" : "Nama spot (mis. Lobi Rektorat)"
+                          }
+                          aria-label={isEn ? "New COD spot name" : "Nama Spot COD baru"}
                           className="min-h-11 rounded-xl border border-[#111827] px-2.5 text-xs font-medium"
                         />
                         <input
                           type="text"
                           value={spotLocation}
                           onChange={(e) => setSpotLocation(e.target.value)}
-                          placeholder="Detail lokasi gedung"
-                          aria-label="Detail lokasi Spot COD baru"
+                          placeholder={isEn ? "Building location detail" : "Detail lokasi gedung"}
+                          aria-label={isEn ? "New COD spot location detail" : "Detail lokasi Spot COD baru"}
                           className="min-h-11 rounded-xl border border-[#111827] px-2.5 text-xs font-medium"
                         />
                         <input
                           type="text"
                           value={spotHours}
                           onChange={(e) => setSpotHours(e.target.value)}
-                          placeholder="Jam layanan"
-                          aria-label="Jam layanan Spot COD baru"
+                          placeholder={isEn ? "Operating hours" : "Jam layanan"}
+                          aria-label={isEn ? "New COD spot hours" : "Jam layanan Spot COD baru"}
                           className="min-h-11 rounded-xl border border-[#111827] px-2.5 text-xs font-medium"
                         />
                       </div>
@@ -575,13 +675,13 @@ export default function AdminPage() {
                         type="submit"
                         className="min-h-11 rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 text-xs font-extrabold text-[#111827]"
                       >
-                        Simpan Spot COD
+                        {isEn ? "Save COD Spot" : "Simpan Spot COD"}
                       </button>
                     </form>
 
                     <div className="space-y-2 pt-2">
                       <p className="text-xs font-extrabold text-[#111827]">
-                        Status Kategori Katalog (FR-48)
+                        {isEn ? "Catalog Category Status (FR-48)" : "Status Kategori Katalog (FR-48)"}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {categoryRefs.map((cat) => (
@@ -593,7 +693,10 @@ export default function AdminPage() {
                               const res = await toggleCategoryActive(cat.slug);
                               if (!res.ok) {
                                 setAdminError(
-                                  res.error ?? "Gagal mengubah status kategori."
+                                  res.error ??
+                                    (isEn
+                                      ? "Failed to toggle category status."
+                                      : "Gagal mengubah status kategori.")
                                 );
                               }
                             }}
@@ -604,7 +707,8 @@ export default function AdminPage() {
                                 : "bg-[#E2E8F0] text-[#475569] line-through"
                             }`}
                           >
-                            {cat.name}: {cat.active ? "Aktif" : "Nonaktif"}
+                            {isEn ? EN_CATEGORY_LABELS[cat.slug as CategoryId] ?? cat.name : cat.name}:{" "}
+                            {cat.active ? (isEn ? "Active" : "Aktif") : isEn ? "Inactive" : "Nonaktif"}
                           </button>
                         ))}
                       </div>
@@ -626,25 +730,33 @@ export default function AdminPage() {
                     id="judul-pengguna-admin"
                     className="text-lg font-extrabold text-[#111827]"
                   >
-                    Kelola Pengguna, Penjual UMKM, &amp; Penangguhan (FR-47, FR-48)
+                    {isEn
+                      ? "Manage Users, UMKM Sellers & Suspensions (FR-47, FR-48)"
+                      : "Kelola Pengguna, Penjual UMKM, & Penangguhan (FR-47, FR-48)"}
                   </h2>
                   <p className="text-xs font-medium text-[#475569]">
-                    Tandai penjual UMKM resmi atau tangguhkan akun pelanggar aturan/no-show.
+                    {isEn
+                      ? "Mark official UMKM sellers or suspend accounts for policy/no-show violations."
+                      : "Tandai penjual UMKM resmi atau tangguhkan akun pelanggar aturan/no-show."}
                   </p>
                 </div>
                 <input
                   type="search"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  placeholder="Cari nama, NIM, atau fakultas..."
-                  aria-label="Cari akun mahasiswa"
+                  placeholder={
+                    isEn ? "Search name, NIM, or faculty..." : "Cari nama, NIM, atau fakultas..."
+                  }
+                  aria-label={isEn ? "Search student accounts" : "Cari akun mahasiswa"}
                   className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-sm font-medium sm:w-64"
                 />
               </div>
 
               {filteredUsers.length === 0 ? (
                 <p className="rounded-xl border border-[#111827]/20 bg-[#F8FAFC] p-4 text-xs font-semibold text-[#475569]">
-                  Tidak ada akun yang cocok dengan filter pencarian.
+                  {isEn
+                    ? "No accounts match your search filter."
+                    : "Tidak ada akun yang cocok dengan filter pencarian."}
                 </p>
               ) : (
                 <ul className="space-y-2.5">
@@ -662,7 +774,7 @@ export default function AdminPage() {
                             NIM {u.nim}
                           </span>
                           <span className="rounded border border-[#111827]/30 bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-bold text-[#14532D]">
-                            {u.ktmStatus}
+                            {getDisplayLabel(locale, u.ktmStatus, EN_KTM_STATUS_LABELS)}
                           </span>
                           {u.isUmkm && (
                             <span className="rounded border border-[#111827] bg-[#FACC15] px-2 py-0.5 text-[11px] font-extrabold">
@@ -671,7 +783,7 @@ export default function AdminPage() {
                           )}
                           {u.isSuspended && (
                             <span className="rounded border border-[#991B1B] bg-[#FEF2F2] px-2 py-0.5 text-[11px] font-extrabold text-[#991B1B]">
-                              Ditangguhkan
+                              {isEn ? "Suspended" : "Ditangguhkan"}
                             </span>
                           )}
                           {u.systemRole === "admin" && (
@@ -694,12 +806,17 @@ export default function AdminPage() {
                             const res = await toggleUserUmkm(u.id);
                             if (!res.ok) {
                               setAdminError(
-                                res.error ?? "Gagal mengubah status UMKM akun."
+                                res.error ??
+                                  (isEn
+                                    ? "Failed to update account UMKM status."
+                                    : "Gagal mengubah status UMKM akun.")
                               );
                               return;
                             }
                             setAdminNotice(
-                              `Status UMKM untuk ${u.name} diperbarui.`
+                              isEn
+                                ? `UMKM status updated for ${u.name}.`
+                                : `Status UMKM untuk ${u.name} diperbarui.`
                             );
                           }}
                           className={`min-h-11 rounded-xl border-2 border-[#111827] px-3.5 text-xs font-bold ${
@@ -708,7 +825,13 @@ export default function AdminPage() {
                               : "bg-white text-[#111827]"
                           }`}
                         >
-                          {u.isUmkm ? "Cabut UMKM" : "Tandai UMKM"}
+                          {u.isUmkm
+                            ? isEn
+                              ? "Revoke UMKM"
+                              : "Cabut UMKM"
+                            : isEn
+                              ? "Mark UMKM"
+                              : "Tandai UMKM"}
                         </button>
                         <button
                           type="button"
@@ -719,14 +842,21 @@ export default function AdminPage() {
                             const res = await toggleUserSuspended(u.id);
                             if (!res.ok) {
                               setAdminError(
-                                res.error ?? "Gagal mengubah status penangguhan."
+                                res.error ??
+                                  (isEn
+                                    ? "Failed to update suspension status."
+                                    : "Gagal mengubah status penangguhan.")
                               );
                               return;
                             }
                             setAdminNotice(
                               u.isSuspended
-                                ? `Akun ${u.name} diaktifkan kembali.`
-                                : `Akun ${u.name} ditangguhkan sementara.`
+                                ? isEn
+                                  ? `Account ${u.name} reactivated.`
+                                  : `Akun ${u.name} diaktifkan kembali.`
+                                : isEn
+                                  ? `Account ${u.name} temporarily suspended.`
+                                  : `Akun ${u.name} ditangguhkan sementara.`
                             );
                           }}
                           className={`min-h-11 rounded-xl border-2 px-3.5 text-xs font-bold disabled:opacity-40 ${
@@ -735,7 +865,13 @@ export default function AdminPage() {
                               : "border-[#991B1B] bg-white text-[#991B1B] hover:bg-[#FEF2F2]"
                           }`}
                         >
-                          {u.isSuspended ? "Aktifkan Akun" : "Tangguhkan Akun"}
+                          {u.isSuspended
+                            ? isEn
+                              ? "Activate Account"
+                              : "Aktifkan Akun"
+                            : isEn
+                              ? "Suspend Account"
+                              : "Tangguhkan Akun"}
                         </button>
                       </div>
                     </li>

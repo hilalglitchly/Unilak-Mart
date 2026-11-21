@@ -316,8 +316,8 @@ html.dark,
 
 html.dark body,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) body {
-  background-color: #0b1320;
-  color: #f8fafc;
+  background-color: #0b1320 !important;
+  color: #f8fafc !important;
 }
 
 html.dark :focus-visible,
@@ -351,6 +351,11 @@ html.dark .category-sticky-bar[data-stuck="true"] .category-sticky-inner,
   box-shadow: 0 4px 0 rgba(2, 6, 23, 0.65);
 }
 
+html.dark dialog::backdrop,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) dialog::backdrop {
+  background-color: rgba(2, 6, 23, 0.78);
+}
+
 html.dark .bg-white,
 html.dark .bg-white\/95,
 html.dark .bg-white\/80,
@@ -358,6 +363,14 @@ html.dark .bg-white\/80,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-white\/95,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-white\/80 {
   background-color: #131f33 !important;
+}
+
+html.dark body,
+html.dark body.bg-white,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) body,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) body.bg-white {
+  background-color: #0b1320 !important;
+  color: #f8fafc !important;
 }
 
 html.dark .bg-\[\#F8FAFC\],
@@ -371,7 +384,9 @@ html.dark .bg-\[\#F0FDF4\],
 }
 
 html.dark .bg-\[\#DCFCE7\],
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#DCFCE7\] {
+html.dark .bg-\[\#BBF7D0\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#DCFCE7\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#BBF7D0\] {
   background-color: #133626 !important;
 }
 
@@ -388,23 +403,62 @@ html.dark .bg-\[\#FEF2F2\],
 }
 
 html.dark .bg-\[\#E2E8F0\],
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#E2E8F0\] {
+html.dark .disabled\:bg-\[\#E2E8F0\]:disabled,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#E2E8F0\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .disabled\:bg-\[\#E2E8F0\]:disabled {
   background-color: #263449 !important;
 }
 
+html.dark .hover\:bg-white:hover,
+html.dark .hover\:bg-\[\#F8FAFC\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-white:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#F8FAFC\]:hover {
+  background-color: #1e293b !important;
+}
+
+html.dark .hover\:bg-\[\#F0FDF4\]:hover,
+html.dark .hover\:bg-\[\#DCFCE7\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#F0FDF4\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#DCFCE7\]:hover {
+  background-color: #143d2b !important;
+}
+
+html.dark .hover\:bg-\[\#E2E8F0\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#E2E8F0\]:hover {
+  background-color: #334155 !important;
+}
+
+html.dark .hover\:bg-\[\#FEF2F2\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#FEF2F2\]:hover {
+  background-color: #451a1f !important;
+}
+
+html.dark .hover\:bg-\[\#FEF9C3\]:hover,
+html.dark .hover\:bg-\[\#FEF08A\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#FEF9C3\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#FEF08A\]:hover {
+  background-color: #3f340f !important;
+}
+
 html.dark .text-\[\#111827\],
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#111827\] {
+html.dark .hover\:text-\[\#111827\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#111827\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:text-\[\#111827\]:hover {
   color: #f8fafc !important;
 }
 
 html.dark .text-\[\#334155\],
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#334155\] {
+html.dark .disabled\:text-\[\#334155\]:disabled,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#334155\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .disabled\:text-\[\#334155\]:disabled {
   color: #e2e8f0 !important;
 }
 
 html.dark .text-\[\#475569\],
+html.dark .text-\[\#64748B\],
 html.dark .placeholder\:text-\[\#475569\]::placeholder,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#475569\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#64748B\],
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .placeholder\:text-\[\#475569\]::placeholder {
   color: #cbd5e1 !important;
 }
@@ -425,9 +479,15 @@ html.dark .text-\[\#991B1B\],
 html.dark .bg-\[\#FACC15\],
 html.dark .bg-\[\#FACC15\] .text-\[\#111827\],
 html.dark .bg-\[\#FDE047\],
+html.dark .hover\:bg-\[\#FDE047\]:hover,
+html.dark .focus\:bg-\[\#FACC15\]:focus,
+html.dark .focus\:text-\[\#111827\]:focus,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FACC15\],
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FACC15\] .text-\[\#111827\],
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FDE047\] {
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FDE047\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:bg-\[\#FDE047\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .focus\:bg-\[\#FACC15\]:focus,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .focus\:text-\[\#111827\]:focus {
   color: #111827 !important;
 }
 
@@ -438,14 +498,39 @@ html.dark .border-\[\#111827\]\/25,
 html.dark .border-\[\#111827\]\/30,
 html.dark .border-\[\#111827\]\/35,
 html.dark .border-\[\#111827\]\/40,
+html.dark .ring-\[\#111827\],
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\],
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/15,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/20,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/25,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/30,
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/35,
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/40 {
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/40,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .ring-\[\#111827\] {
   border-color: #94a3b8 !important;
+  --tw-ring-color: #94a3b8 !important;
+}
+
+html.dark .hover\:border-\[\#111827\]:hover,
+html.dark .focus\:border-\[\#111827\]:focus,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .hover\:border-\[\#111827\]:hover,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .focus\:border-\[\#111827\]:focus {
+  border-color: #cbd5e1 !important;
+}
+
+html.dark .border-\[\#15803D\],
+html.dark .ring-\[\#15803D\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#15803D\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .ring-\[\#15803D\] {
+  border-color: #4ade80 !important;
+  --tw-ring-color: #4ade80 !important;
+}
+
+html.dark .border-\[\#991B1B\],
+html.dark .border-\[\#991B1B\]\/60,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#991B1B\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#991B1B\]\/60 {
+  border-color: #f87171 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

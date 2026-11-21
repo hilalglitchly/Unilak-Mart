@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { ModalDialog, ProductIllustration } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
-import { formatRupiah } from "@/lib/preview-data";
+import {
+  EN_CONDITION_LABELS,
+  formatRupiah,
+  getDisplayLabel,
+} from "@/lib/preview-data";
 
 export function ListingDetailClient({ id }: { id: string }) {
   const {
@@ -15,7 +19,9 @@ export function ListingDetailClient({ id }: { id: string }) {
     codSpots,
     createOrder,
     submitReport,
+    locale,
   } = useMarketplace();
+  const isEn = locale === "en";
 
   const product = products.find((p) => p.id === id);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -38,17 +44,18 @@ export function ListingDetailClient({ id }: { id: string }) {
       <main id="konten-utama" className="mx-auto max-w-3xl px-4 py-12">
         <div className="rounded-3xl border-[3px] border-[#111827] bg-[#F0FDF4] p-8 text-center shadow-[5px_5px_0px_#111827]">
           <h1 className="text-2xl font-extrabold text-[#111827]">
-            Listing tidak ditemukan atau disembunyikan
+            {isEn ? "Listing not found or hidden" : "Listing tidak ditemukan atau disembunyikan"}
           </h1>
           <p className="mt-2 text-sm font-medium text-[#334155]">
-            Listing ini mungkin sudah terhapus atau disembunyikan sementara oleh
-            administrator melalui post-moderasi.
+            {isEn
+              ? "This listing may have been removed or temporarily hidden by an administrator during moderation."
+              : "Listing ini mungkin sudah terhapus atau disembunyikan sementara oleh administrator melalui post-moderasi."}
           </p>
           <Link
             href="/"
             className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-6 py-2.5 text-sm font-bold text-white"
           >
-            Kembali ke Katalog Beranda
+            {isEn ? "Back to Home Catalog" : "Kembali ke Katalog Beranda"}
           </Link>
         </div>
       </main>
@@ -60,12 +67,18 @@ export function ListingDetailClient({ id }: { id: string }) {
   const totalSlots =
     product.uploadedImages && product.uploadedImages.length > 0
       ? product.uploadedImages.slice(0, 5)
-      : ["Slide Utama (Ilustrasi)", "Detail Kondisi", "Area Spot COD"];
+      : isEn
+        ? ["Main Slide (Illustration)", "Condition Detail", "COD Spot Area"]
+        : ["Slide Utama (Ilustrasi)", "Detail Kondisi", "Area Spot COD"];
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSpot || !proposedTime.trim()) {
-      setOrderError("Pilih 1 titik COD dan tentukan jadwal temu terlebih dahulu.");
+      setOrderError(
+        isEn
+          ? "Pick 1 COD spot and specify a meetup time first."
+          : "Pilih 1 titik COD dan tentukan jadwal temu terlebih dahulu."
+      );
       return;
     }
     const formatted = proposedTime.includes("T")
@@ -80,7 +93,9 @@ export function ListingDetailClient({ id }: { id: string }) {
       note,
     });
     if (!res.ok) {
-      setOrderError(res.error ?? "Gagal mengirim pesanan.");
+      setOrderError(
+        res.error ?? (isEn ? "Failed to submit order." : "Gagal mengirim pesanan.")
+      );
       return;
     }
     setOrderError("");
@@ -90,7 +105,11 @@ export function ListingDetailClient({ id }: { id: string }) {
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportReason.trim()) {
-      setReportError("Sebutkan alasan pelanggaran atau kendala yang ditemukan.");
+      setReportError(
+        isEn
+          ? "Specify the violation or issue found."
+          : "Sebutkan alasan pelanggaran atau kendala yang ditemukan."
+      );
       return;
     }
     const res = await submitReport({
@@ -100,7 +119,9 @@ export function ListingDetailClient({ id }: { id: string }) {
       reason: reportReason.trim(),
     });
     if (!res.ok) {
-      setReportError(res.error ?? "Gagal mengirim laporan.");
+      setReportError(
+        res.error ?? (isEn ? "Failed to submit report." : "Gagal mengirim laporan.")
+      );
       return;
     }
     setReportError("");
@@ -114,14 +135,17 @@ export function ListingDetailClient({ id }: { id: string }) {
     >
       <nav aria-label="Breadcrumb" className="text-xs font-bold text-[#334155]">
         <Link href="/" className="inline-flex min-h-11 items-center underline">
-          Beranda
+          {isEn ? "Home" : "Beranda"}
         </Link>{" "}
-        / <span>Detail Listing</span>
+        / <span>{isEn ? "Listing Detail" : "Detail Listing"}</span>
       </nav>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Galeri Foto (Maks. 5 Slot dengan dimensi tetap 0 CLS) */}
-        <section className="space-y-4 lg:col-span-6" aria-label="Galeri foto listing">
+        <section
+          className="space-y-4 lg:col-span-6"
+          aria-label={isEn ? "Listing photo gallery" : "Galeri foto listing"}
+        >
           <div
             className={`relative flex aspect-[4/3] w-full items-center justify-center rounded-2xl border-2 border-[#111827] p-6 ${product.cardBg}`}
           >
@@ -135,7 +159,13 @@ export function ListingDetailClient({ id }: { id: string }) {
                       : "bg-[#FACC15] text-[#111827]"
                 }`}
               >
-                {isSoldOut ? "Habis" : product.badge}
+                {isSoldOut
+                  ? isEn
+                    ? "Sold Out"
+                    : "Habis"
+                  : isEn && product.price === 0 && !product.isUmkm
+                    ? "Free Rp0"
+                    : product.badge}
               </span>
             )}
 
@@ -143,7 +173,11 @@ export function ListingDetailClient({ id }: { id: string }) {
               <Image
                 unoptimized
                 src={product.uploadedImages[activeSlide]}
-                alt={`${product.title} tampilan ${activeSlide + 1}`}
+                alt={
+                  isEn
+                    ? `${product.title} view ${activeSlide + 1}`
+                    : `${product.title} tampilan ${activeSlide + 1}`
+                }
                 width={540}
                 height={405}
                 className="h-full w-full rounded-xl object-contain"
@@ -159,7 +193,9 @@ export function ListingDetailClient({ id }: { id: string }) {
                   {typeof totalSlots[activeSlide] === "string" &&
                   !totalSlots[activeSlide].startsWith("data:")
                     ? totalSlots[activeSlide]
-                    : "Foto Terkompresi"}
+                    : isEn
+                      ? "Compressed Photo"
+                      : "Foto Terkompresi"}
                 </span>
               </div>
             )}
@@ -178,7 +214,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                     : "bg-white text-[#111827] hover:bg-[#F0FDF4]"
                 }`}
               >
-                Foto {idx + 1}
+                {isEn ? `Photo ${idx + 1}` : `Foto ${idx + 1}`}
               </button>
             ))}
           </div>
@@ -195,26 +231,29 @@ export function ListingDetailClient({ id }: { id: string }) {
                     {product.sellerName}
                   </p>
                   <p className="text-xs font-semibold text-[#334155]">
-                    {product.sellerProdi} • Fakultas {product.faculty}
+                    {product.sellerProdi} • {isEn ? "Faculty" : "Fakultas"} {product.faculty}
                   </p>
                 </div>
               </div>
               {product.sellerVerified && (
                 <span className="rounded-lg border border-[#15803D] bg-[#DCFCE7] px-2.5 py-1 text-xs font-extrabold text-[#14532D]">
-                  KTM Terverifikasi
+                  {isEn ? "KTM Verified" : "KTM Terverifikasi"}
                 </span>
               )}
             </div>
 
             <p className="text-xs font-medium text-[#475569]">
-              Nomor WhatsApp penjual dirahasiakan dan baru terbuka setelah penjual
-              menyetujui jadwal COD.
+              {isEn
+                ? "Seller's WhatsApp number is hidden and only unlocked once the seller approves your COD meetup schedule."
+                : "Nomor WhatsApp penjual dirahasiakan dan baru terbuka setelah penjual menyetujui jadwal COD."}
             </p>
 
             {product.reviews && product.reviews.length > 0 && (
               <div className="space-y-2 border-t border-[#111827]/15 pt-3">
                 <h2 className="text-xs font-extrabold text-[#111827]">
-                  Ulasan Pembeli ({product.reviews.length})
+                  {isEn
+                    ? `Buyer Reviews (${product.reviews.length})`
+                    : `Ulasan Pembeli (${product.reviews.length})`}
                 </h2>
                 {product.reviews.map((rev) => (
                   <div
@@ -237,7 +276,7 @@ export function ListingDetailClient({ id }: { id: string }) {
           <div className="space-y-3 rounded-2xl border-2 border-[#111827] bg-white p-6">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
               <span className="rounded-md border border-[#111827]/40 bg-[#FEF9C3] px-2.5 py-1 text-[#111827]">
-                {product.condition}
+                {getDisplayLabel(locale, product.condition, EN_CONDITION_LABELS)}
               </span>
               <span
                 className={
@@ -245,10 +284,16 @@ export function ListingDetailClient({ id }: { id: string }) {
                 }
               >
                 {product.alwaysAvailable
-                  ? "Stok selalu tersedia"
+                  ? isEn
+                    ? "Always available"
+                    : "Stok selalu tersedia"
                   : isSoldOut
-                    ? "Terjual (Stok 0)"
-                    : `Sisa stok: ${product.stock}`}
+                    ? isEn
+                      ? "Sold Out (Stock 0)"
+                      : "Terjual (Stok 0)"
+                    : isEn
+                      ? `Stock left: ${product.stock}`
+                      : `Sisa stok: ${product.stock}`}
               </span>
             </div>
 
@@ -257,9 +302,9 @@ export function ListingDetailClient({ id }: { id: string }) {
             </h1>
 
             <p className="text-2xl font-extrabold text-[#15803D]">
-              {product.priceLabel}{" "}
+              {formatRupiah(product.price, locale)}{" "}
               <span className="text-xs font-bold text-[#475569]">
-                • COD Tunai 0% Biaya Admin
+                {isEn ? "• Cash COD 0% Admin Fee" : "• COD Tunai 0% Biaya Admin"}
               </span>
             </p>
 
@@ -273,7 +318,9 @@ export function ListingDetailClient({ id }: { id: string }) {
                   href="#form-ajukan-cod"
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white hover:bg-[#166534] lg:hidden"
                 >
-                  Ajukan COD Sekarang ({product.priceLabel})
+                  {isEn
+                    ? `Request COD Now (${formatRupiah(product.price, locale)})`
+                    : `Ajukan COD Sekarang (${product.priceLabel})`}
                 </a>
               )}
               <button
@@ -286,7 +333,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                     : "bg-white text-[#111827] hover:bg-[#F0FDF4]"
                 }`}
               >
-                {isSaved ? "Tersimpan" : "Simpan Listing"}
+                {isSaved ? (isEn ? "Saved" : "Tersimpan") : isEn ? "Save Listing" : "Simpan Listing"}
               </button>
               <button
                 type="button"
@@ -298,7 +345,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                 }}
                 className="inline-flex min-h-11 items-center rounded-xl border border-[#991B1B]/60 bg-white px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
               >
-                Laporkan Listing
+                {isEn ? "Report Listing" : "Laporkan Listing"}
               </button>
             </div>
           </div>
@@ -309,7 +356,7 @@ export function ListingDetailClient({ id }: { id: string }) {
             className="rounded-2xl border-2 border-[#111827] bg-white p-6"
           >
             <h2 className="text-lg font-extrabold text-[#111827]">
-              Buat Pesanan &amp; Ajukan Spot COD
+              {isEn ? "Create Order & Propose COD Spot" : "Buat Pesanan & Ajukan Spot COD"}
             </h2>
 
             {createdOrderCode ? (
@@ -318,18 +365,30 @@ export function ListingDetailClient({ id }: { id: string }) {
                 className="mt-4 space-y-3 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4"
               >
                 <p className="text-sm font-extrabold text-[#15803D]">
-                  Pesanan {createdOrderCode} berhasil dikirim!
+                  {isEn
+                    ? `Order ${createdOrderCode} submitted!`
+                    : `Pesanan ${createdOrderCode} berhasil dikirim!`}
                 </p>
                 <p className="text-xs font-medium text-[#111827]">
-                  Total bayar tunai saat ketemuan:{" "}
-                  <strong>{formatRupiah(product.price * quantity)}</strong> di{" "}
-                  <strong>{selectedSpot}</strong>.
+                  {isEn ? (
+                    <>
+                      Total cash to pay on meetup:{" "}
+                      <strong>{formatRupiah(product.price * quantity, locale)}</strong> at{" "}
+                      <strong>{selectedSpot}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Total bayar tunai saat ketemuan:{" "}
+                      <strong>{formatRupiah(product.price * quantity)}</strong> di{" "}
+                      <strong>{selectedSpot}</strong>.
+                    </>
+                  )}
                 </p>
                 <Link
                   href="/pesanan"
                   className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 py-2 text-xs font-bold text-white"
                 >
-                  Pantau Status di Halaman Pesanan
+                  {isEn ? "Track Status in Orders" : "Pantau Status di Halaman Pesanan"}
                 </Link>
               </div>
             ) : (
@@ -340,7 +399,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                       htmlFor="detail-spot-cod"
                       className="block text-xs font-extrabold text-[#111827]"
                     >
-                      Pilih 1 Spot COD Didukung
+                      {isEn ? "Choose 1 Supported COD Spot" : "Pilih 1 Spot COD Didukung"}
                     </label>
                     <select
                       id="detail-spot-cod"
@@ -360,7 +419,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                       htmlFor="detail-jumlah"
                       className="block text-xs font-extrabold text-[#111827]"
                     >
-                      Jumlah
+                      {isEn ? "Qty" : "Jumlah"}
                     </label>
                     <input
                       id="detail-jumlah"
@@ -382,7 +441,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                     htmlFor="detail-jam-cod"
                     className="block text-xs font-extrabold text-[#111827]"
                   >
-                    Usulan Hari &amp; Jam Ketemuan
+                    {isEn ? "Proposed Meetup Date & Time" : "Usulan Hari & Jam Ketemuan"}
                   </label>
                   <input
                     id="detail-jam-cod"
@@ -401,14 +460,18 @@ export function ListingDetailClient({ id }: { id: string }) {
                     htmlFor="detail-catatan"
                     className="block text-xs font-extrabold text-[#111827]"
                   >
-                    Catatan Pesanan (Opsional)
+                    {isEn ? "Order Note (Optional)" : "Catatan Pesanan (Opsional)"}
                   </label>
                   <textarea
                     id="detail-catatan"
                     rows={2}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="Contoh: Ketemuan di meja dekat tangga lobi."
+                    placeholder={
+                      isEn
+                        ? "Example: Meet by the lobby staircase table."
+                        : "Contoh: Ketemuan di meja dekat tangga lobi."
+                    }
                     className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium text-[#111827] sm:text-sm"
                   />
                 </div>
@@ -418,7 +481,7 @@ export function ListingDetailClient({ id }: { id: string }) {
                     role="alert"
                     className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
                   >
-                    Perhatian: {orderError}
+                    {isEn ? "Notice:" : "Perhatian:"} {orderError}
                   </div>
                 )}
 
@@ -432,8 +495,12 @@ export function ListingDetailClient({ id }: { id: string }) {
                   }`}
                 >
                   {isSoldOut
-                    ? "Barang Terjual (Stok Kosong)"
-                    : `Pesan COD (${formatRupiah(product.price * quantity)})`}
+                    ? isEn
+                      ? "Sold Out (Stock Empty)"
+                      : "Barang Terjual (Stok Kosong)"
+                    : isEn
+                      ? `Order COD (${formatRupiah(product.price * quantity, locale)})`
+                      : `Pesan COD (${formatRupiah(product.price * quantity)})`}
                 </button>
               </form>
             )}
@@ -449,12 +516,12 @@ export function ListingDetailClient({ id }: { id: string }) {
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="judul-modal-lapor" className="text-lg font-extrabold text-[#111827]">
-            Laporkan Pelanggaran Listing
+            {isEn ? "Report Listing Violation" : "Laporkan Pelanggaran Listing"}
           </h2>
           <button
             type="button"
             onClick={() => setReportOpen(false)}
-            aria-label="Tutup dialog laporan"
+            aria-label={isEn ? "Close report dialog" : "Tutup dialog laporan"}
             className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold"
           >
             ✕
@@ -464,28 +531,31 @@ export function ListingDetailClient({ id }: { id: string }) {
         {reportSent ? (
           <div role="status" className="mt-4 space-y-3 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-4">
             <p className="text-sm font-bold text-[#15803D]">
-              Laporan diterima untuk ditinjau administrator.
+              {isEn
+                ? "Report received for administrator review."
+                : "Laporan diterima untuk ditinjau administrator."}
             </p>
             <Link
               href="/admin"
               onClick={() => setReportOpen(false)}
               className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
             >
-              Lihat Antrean Laporan di Panel Admin
+              {isEn ? "View Report Queue in Admin" : "Lihat Antrean Laporan di Panel Admin"}
             </Link>
           </div>
         ) : (
           <form onSubmit={handleReportSubmit} className="mt-4 space-y-4">
             <p className="text-xs font-medium text-[#334155]">
-              Laporkan barang/jasa terlarang (rokok/vape, miras, bajakan, joki
-              tugas/skripsi) atau ketidaksesuaian kondisi barang.
+              {isEn
+                ? "Report prohibited items/services (cigarettes/vapes, alcohol, pirated goods, assignment-writing services) or inaccurate item conditions."
+                : "Laporkan barang/jasa terlarang (rokok/vape, miras, bajakan, joki tugas/skripsi) atau ketidaksesuaian kondisi barang."}
             </p>
             <div>
               <label
                 htmlFor="alasan-laporan"
                 className="block text-xs font-extrabold text-[#111827]"
               >
-                Alasan Pelaporan
+                {isEn ? "Reason for Report" : "Alasan Pelaporan"}
               </label>
               <textarea
                 id="alasan-laporan"
@@ -495,7 +565,11 @@ export function ListingDetailClient({ id }: { id: string }) {
                   setReportReason(e.target.value);
                   setReportError("");
                 }}
-                placeholder="Jelaskan dugaan pelanggaran secara spesifik..."
+                placeholder={
+                  isEn
+                    ? "Describe the suspected violation specifically..."
+                    : "Jelaskan dugaan pelanggaran secara spesifik..."
+                }
                 className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium text-[#111827] sm:text-sm"
               />
             </div>
@@ -513,13 +587,13 @@ export function ListingDetailClient({ id }: { id: string }) {
                 onClick={() => setReportOpen(false)}
                 className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold"
               >
-                Batal
+                {isEn ? "Cancel" : "Batal"}
               </button>
               <button
                 type="submit"
                 className="min-h-11 rounded-full border-2 border-[#111827] bg-[#991B1B] px-5 text-xs font-bold text-white"
               >
-                Kirim Laporan
+                {isEn ? "Submit Report" : "Kirim Laporan"}
               </button>
             </div>
           </form>

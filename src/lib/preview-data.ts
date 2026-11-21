@@ -28,6 +28,51 @@ export type KtmStatus =
   | "Terverifikasi"
   | "Ditolak";
 
+export type AppLocale = "id" | "en";
+
+export const EN_CATEGORY_LABELS: Record<CategoryId, string> = {
+  semua: "All Categories",
+  umkm: "UMKM Storefront",
+  buku: "Books & Modules",
+  elektronik: "Electronics",
+  kos: "Dorm Essentials",
+  pakaian: "Apparel",
+  "produk-umkm": "UMKM Products",
+  jasa: "Services",
+  jajanan: "Campus Snacks",
+  gratis: "Rp0 Free",
+};
+
+export const EN_CONDITION_LABELS: Record<ItemCondition, string> = {
+  Baru: "New",
+  "Bekas Seperti Baru": "Used Like New",
+  "Bekas Layak Pakai": "Used Good",
+};
+
+export const EN_ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  Menunggu: "Pending",
+  Dijadwalkan: "Scheduled",
+  "Sudah Diserahkan": "Handed Over",
+  Selesai: "Completed",
+  Dibatalkan: "Cancelled",
+  Kedaluwarsa: "Expired",
+};
+
+export const EN_KTM_STATUS_LABELS: Record<KtmStatus, string> = {
+  "Belum Verifikasi": "Unverified",
+  Menunggu: "Pending Review",
+  Terverifikasi: "Verified",
+  Ditolak: "Rejected",
+};
+
+export function getDisplayLabel(
+  locale: AppLocale,
+  value: string,
+  map: Record<string, string>
+): string {
+  return locale === "en" ? (map[value] ?? value) : value;
+}
+
 export type IllustrationType =
   | "bag"
   | "sneaker"
@@ -250,8 +295,8 @@ export const INITIAL_COD_SPOTS: CodSpotItem[] = [
   },
 ];
 
-export function formatRupiah(price: number): string {
-  if (price === 0) return "Rp 0 (Gratis)";
+export function formatRupiah(price: number, locale: AppLocale = "id"): string {
+  if (price === 0) return locale === "en" ? "Rp 0 (Free)" : "Rp 0 (Gratis)";
   return `Rp ${price.toLocaleString("id-ID")}`;
 }
 
