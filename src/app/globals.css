@@ -49,6 +49,13 @@
 }
 
 :root {
+  color-scheme: light dark;
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -298,6 +305,147 @@
 
 .category-scroll-strip::-webkit-scrollbar {
   display: none;
+}
+
+/* Dark mode theme tokens & surface overrides (WCAG AA verified >= 4.5:1 text, >= 3:1 borders) */
+html.dark,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  --background: #0b1320;
+  --foreground: #f8fafc;
+}
+
+html.dark body,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) body {
+  background-color: #0b1320;
+  color: #f8fafc;
+}
+
+html.dark :focus-visible,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) :focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+html.dark .listing-card-shell:has(a.card-link:focus-visible),
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .listing-card-shell:has(a.card-link:focus-visible) {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+html.dark .category-sticky-inner,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .category-sticky-inner {
+  background-color: #131f33;
+}
+
+@container category-sticky scroll-state(stuck: top) {
+  html.dark .category-sticky-inner,
+  :root:has(> head > meta[name="color-scheme"][content="dark"]) .category-sticky-inner {
+    border-bottom-color: #94a3b8;
+    box-shadow: 0 4px 0 rgba(2, 6, 23, 0.65);
+  }
+}
+
+html.dark .category-sticky-bar[data-stuck="true"] .category-sticky-inner,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .category-sticky-bar[data-stuck="true"] .category-sticky-inner {
+  border-bottom-color: #94a3b8;
+  box-shadow: 0 4px 0 rgba(2, 6, 23, 0.65);
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/95,
+html.dark .bg-white\/80,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-white,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-white\/95,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-white\/80 {
+  background-color: #131f33 !important;
+}
+
+html.dark .bg-\[\#F8FAFC\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#F8FAFC\] {
+  background-color: #1a2942 !important;
+}
+
+html.dark .bg-\[\#F0FDF4\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#F0FDF4\] {
+  background-color: #0f291e !important;
+}
+
+html.dark .bg-\[\#DCFCE7\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#DCFCE7\] {
+  background-color: #133626 !important;
+}
+
+html.dark .bg-\[\#FEF9C3\],
+html.dark .bg-\[\#FEF08A\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FEF9C3\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FEF08A\] {
+  background-color: #2d260c !important;
+}
+
+html.dark .bg-\[\#FEF2F2\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FEF2F2\] {
+  background-color: #351518 !important;
+}
+
+html.dark .bg-\[\#E2E8F0\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#E2E8F0\] {
+  background-color: #263449 !important;
+}
+
+html.dark .text-\[\#111827\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#111827\] {
+  color: #f8fafc !important;
+}
+
+html.dark .text-\[\#334155\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#334155\] {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-\[\#475569\],
+html.dark .placeholder\:text-\[\#475569\]::placeholder,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#475569\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .placeholder\:text-\[\#475569\]::placeholder {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-\[\#14532D\],
+html.dark .text-\[\#15803D\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#14532D\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#15803D\] {
+  color: #4ade80 !important;
+}
+
+html.dark .text-\[\#991B1B\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .text-\[\#991B1B\] {
+  color: #fca5a5 !important;
+}
+
+/* Pertahankan kontras hitam di atas tombol/lencana aksen kuning (#FACC15 / #FDE047) */
+html.dark .bg-\[\#FACC15\],
+html.dark .bg-\[\#FACC15\] .text-\[\#111827\],
+html.dark .bg-\[\#FDE047\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FACC15\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FACC15\] .text-\[\#111827\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .bg-\[\#FDE047\] {
+  color: #111827 !important;
+}
+
+html.dark .border-\[\#111827\],
+html.dark .border-\[\#111827\]\/15,
+html.dark .border-\[\#111827\]\/20,
+html.dark .border-\[\#111827\]\/25,
+html.dark .border-\[\#111827\]\/30,
+html.dark .border-\[\#111827\]\/35,
+html.dark .border-\[\#111827\]\/40,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\],
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/15,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/20,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/25,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/30,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/35,
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .border-\[\#111827\]\/40 {
+  border-color: #94a3b8 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

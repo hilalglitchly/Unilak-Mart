@@ -30,8 +30,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="id"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="color-scheme" content="light dark" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var s=localStorage.getItem("color-scheme"),m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=(s==="dark"||s==="light")?s:"light dark";var d=s==="dark"||(s!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);var l=localStorage.getItem("unilak-locale");if(l==="en"||l==="id")document.documentElement.lang=l;}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full bg-white text-[#111827]">
         <MarketplaceProvider>
           <SiteChrome>{children}</SiteChrome>

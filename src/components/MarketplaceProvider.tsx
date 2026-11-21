@@ -184,6 +184,12 @@ interface MarketplaceContextValue {
     summary?: MaintenanceSummary;
     error?: string;
   }>;
+  locale: "id" | "en";
+  toggleLocale: () => void;
+  resolvedTheme: "light" | "dark";
+  themePreference: "system" | "light" | "dark";
+  toggleTheme: () => void;
+  resetThemeToSystem: () => void;
 }
 
 const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
@@ -191,6 +197,128 @@ const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
 export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [supabaseReady, setSupabaseReady] = useState(false);
+  const [locale, setLocale] = useState<"id" | "en">("id");
+  const [themePreference, setThemePreference] = useState<
+    "system" | "light" | "dark"
+  >("system");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const syncFromEnvironment = () => {
+      let storedTheme: string | null = null;
+      let storedLocale: string | null = null;
+      try {
+        storedTheme = localStorage.getItem("color-scheme");
+        storedLocale = localStorage.getItem("unilak-locale");
+      } catch {
+        // Abaikan bila localStorage dibatasi browser
+      }
+
+      const nextLocale = storedLocale === "en" ? "en" : "id";
+      setLocale(nextLocale);
+      document.documentElement.lang = nextLocale;
+
+      const systemDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      const explicitTheme =
+        storedTheme === "dark" || storedTheme === "light" ? storedTheme : null;
+      const activeDark = explicitTheme ? explicitTheme === "dark" : systemDark;
+
+      const meta = document.querySelector('meta[name="color-scheme"]');
+      if (meta) {
+        meta.setAttribute("content", explicitTheme ?? "light dark");
+      }
+      document.documentElement.classList.toggle("dark", activeDark);
+      setThemePreference(explicitTheme ?? "system");
+      setResolvedTheme(activeDark ? "dark" : "light");
+    };
+
+    syncFromEnvironment();
+
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleMediaChange = () => syncFromEnvironment();
+    const handleStorageChange = () => syncFromEnvironment();
+
+    mq.addEventListener("change", handleMediaChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      mq.removeEventListener("change", handleMediaChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  const toggleLocale = useCallback(() => {
+    setLocale((prev) => {
+      const next = prev === "id" ? "en" : "id";
+      try {
+        localStorage.setItem("unilak-locale", next);
+      } catch {
+        // Tetap terapkan bahasa pada sesi berjalan
+      }
+      if (typeof document !== "undefined") {
+        document.documentElement.lang = next;
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const systemScheme = window.matchMedia("(prefers-color-scheme: dark)")
+      .matches
+      ? "dark"
+      : "light";
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem("color-scheme");
+    } catch {
+      // Abaikan bila akses storage ditolak
+    }
+    const currentRendered =
+      stored === "dark" || stored === "light" ? stored : systemScheme;
+    const targetScheme = currentRendered === "dark" ? "light" : "dark";
+
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    try {
+      if (targetScheme === systemScheme) {
+        localStorage.removeItem("color-scheme");
+      } else {
+        localStorage.setItem("color-scheme", targetScheme);
+      }
+    } catch {
+      // Tetap perbarui DOM bila localStorage diblokir
+    }
+
+    if (meta) {
+      meta.setAttribute(
+        "content",
+        targetScheme === systemScheme ? "light dark" : targetScheme
+      );
+    }
+    document.documentElement.classList.toggle("dark", targetScheme === "dark");
+    setThemePreference(targetScheme === systemScheme ? "system" : targetScheme);
+    setResolvedTheme(targetScheme);
+  }, []);
+
+  const resetThemeToSystem = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.removeItem("color-scheme");
+    } catch {
+      // Abaikan bila localStorage diblokir
+    }
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) {
+      meta.setAttribute("content", "light dark");
+    }
+    const systemDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    document.documentElement.classList.toggle("dark", systemDark);
+    setThemePreference("system");
+    setResolvedTheme(systemDark ? "dark" : "light");
+  }, []);
 
   const [products, setProducts] = useState<ProductItem[]>(SAMPLE_PRODUCTS);
   const [myListingIds, setMyListingIds] = useState<string[]>(INITIAL_MY_LISTING_IDS);
@@ -1639,6 +1767,12 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     toggleUserUmkm,
     toggleUserSuspended,
     runMaintenance,
+    locale,
+    toggleLocale,
+    resolvedTheme,
+    themePreference,
+    toggleTheme,
+    resetThemeToSystem,
   };
 
   return (

@@ -16,26 +16,48 @@ import {
   type SortOption,
 } from "@/lib/preview-data";
 
+const EN_CATEGORY_LABELS: Record<CategoryId, string> = {
+  semua: "All Categories",
+  umkm: "UMKM Storefront",
+  buku: "Books & Modules",
+  elektronik: "Electronics",
+  kos: "Dorm Essentials",
+  pakaian: "Apparel",
+  "produk-umkm": "UMKM Products",
+  jasa: "Services",
+  jajanan: "Campus Snacks",
+  gratis: "Rp0 Free",
+};
+
+const EN_CONDITION_LABELS: Record<ItemCondition, string> = {
+  Baru: "New",
+  "Bekas Seperti Baru": "Used Like New",
+  "Bekas Layak Pakai": "Used Good",
+};
+
 function ListingCard({
   item,
   isSaved,
   compact = false,
+  locale = "id",
   onToggleSave,
   onOrderCod,
 }: {
   item: ProductItem;
   isSaved: boolean;
   compact?: boolean;
+  locale?: "id" | "en";
   onToggleSave: (id: string) => void;
   onOrderCod: (product: ProductItem) => void;
 }) {
+  const isEn = locale === "en";
   const isSoldOut = !item.alwaysAvailable && item.stock <= 0;
   const meaningfulBadge = isSoldOut
-    ? { label: "Habis", tone: "bg-[#FEF2F2] text-[#991B1B]" }
+    ? { label: isEn ? "Sold Out" : "Habis", tone: "bg-[#FEF2F2] text-[#991B1B]" }
     : item.isUmkm
       ? { label: "UMKM", tone: "bg-[#FACC15] text-[#111827]" }
       : item.price === 0
-        ? { label: "Gratis Rp0", tone: "bg-[#DCFCE7] text-[#14532D]" }
+        ? { label: isEn ? "Free Rp0" : "Gratis Rp0", tone: "bg-[#DCFCE7] text-[#14532D]" }
         : null;
 
   if (compact) {
@@ -64,7 +86,13 @@ function ListingCard({
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-extrabold text-[#15803D]">{item.priceLabel}</span>
             <span className="text-[11px] font-bold text-[#475569]">
-              {item.alwaysAvailable ? "Tersedia" : `Stok ${item.stock}`}
+              {item.alwaysAvailable
+                ? isEn
+                  ? "Available"
+                  : "Tersedia"
+                : isEn
+                  ? `Stock ${item.stock}`
+                  : `Stok ${item.stock}`}
             </span>
           </div>
           <h3 className="truncate text-sm font-extrabold text-[#111827]">
@@ -82,7 +110,13 @@ function ListingCard({
               onClick={() => onOrderCod(item)}
               className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[#111827] bg-[#15803D] px-3.5 text-xs font-bold text-white hover:bg-[#166534] disabled:bg-[#E2E8F0] disabled:text-[#334155]"
             >
-              {isSoldOut ? "Habis" : "Pesan COD"}
+              {isSoldOut
+                ? isEn
+                  ? "Sold Out"
+                  : "Habis"
+                : isEn
+                  ? "Order COD"
+                  : "Pesan COD"}
             </button>
           </div>
         </div>
@@ -158,10 +192,16 @@ function ListingCard({
               }`}
             >
               {item.alwaysAvailable
-                ? "Tersedia"
+                ? isEn
+                  ? "Available"
+                  : "Tersedia"
                 : isSoldOut
-                  ? "Habis"
-                  : `Sisa ${item.stock}`}
+                  ? isEn
+                    ? "Sold Out"
+                    : "Habis"
+                  : isEn
+                    ? `${item.stock} left`
+                    : `Sisa ${item.stock}`}
             </span>
           </div>
 
@@ -172,7 +212,7 @@ function ListingCard({
           </h3>
 
           <p className="listing-card-meta truncate font-medium text-[#475569]">
-            {item.condition} • {item.faculty}
+            {isEn ? EN_CONDITION_LABELS[item.condition] : item.condition} • {item.faculty}
           </p>
 
           <p className="listing-card-meta truncate font-semibold text-[#111827]">
@@ -205,7 +245,13 @@ function ListingCard({
               : "bg-[#15803D] text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px]"
           }`}
         >
-          {isSoldOut ? "Stok Habis" : "Pesan COD"}
+          {isSoldOut
+            ? isEn
+              ? "Out of Stock"
+              : "Stok Habis"
+            : isEn
+              ? "Order COD"
+              : "Pesan COD"}
         </button>
       </div>
     </article>
@@ -228,7 +274,9 @@ export default function Home() {
     codSpots,
     createOrder,
     profile,
+    locale,
   } = useMarketplace();
+  const isEn = locale === "en";
 
   const [selectedCondition, setSelectedCondition] = useState<"semua" | ItemCondition>("semua");
   const [sortBy, setSortBy] = useState<SortOption>("terbaru");
@@ -438,12 +486,15 @@ export default function Home() {
               id="judul-hero"
               className="text-[clamp(1.6rem,3.6vw,2.85rem)] font-extrabold leading-[1.15] tracking-tight text-[#111827]"
             >
-              Pasar Kampus Unilak,{" "}
-              <span className="text-[#15803D]">Hemat &amp; 0% Biaya Admin</span>
+              {isEn ? "Unilak Campus Market," : "Pasar Kampus Unilak,"}{" "}
+              <span className="text-[#15803D]">
+                {isEn ? "Save More & 0% Admin Fee" : "Hemat & 0% Biaya Admin"}
+              </span>
             </h1>
             <p className="max-w-xl text-sm font-medium leading-relaxed text-[#334155] sm:text-base">
-              Jual-beli buku kuliah, barang kos, dan produk UMKM mahasiswa Universitas
-              Lancang Kuning. Ketemuan langsung di titik COD kampus tanpa biaya platform.
+              {isEn
+                ? "Buy and sell textbooks, dorm essentials, and student MSME products at Universitas Lancang Kuning. Meet directly at campus COD spots with zero platform fees."
+                : "Jual-beli buku kuliah, barang kos, dan produk UMKM mahasiswa Universitas Lancang Kuning. Ketemuan langsung di titik COD kampus tanpa biaya platform."}
             </p>
 
             <div className="flex flex-wrap gap-3 pt-1">
@@ -451,18 +502,20 @@ export default function Home() {
                 href="#katalog"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-6 py-2 text-sm font-bold text-white shadow-[2px_2px_0px_#111827] hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px]"
               >
-                Jelajahi Katalog
+                {isEn ? "Browse Catalog" : "Jelajahi Katalog"}
               </a>
               <Link
                 href="/jual"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-6 py-2 text-sm font-extrabold text-[#111827] shadow-[2px_2px_0px_#111827] hover:bg-[#FDE047] active:translate-x-[1px] active:translate-y-[1px]"
               >
-                + Pasang Listing
+                {isEn ? "+ Post Listing" : "+ Pasang Listing"}
               </Link>
             </div>
 
             <p className="text-xs font-bold text-[#14532D]">
-              Khusus KTM Terverifikasi • COD Area Kampus Unilak • Tanpa Biaya Komisi
+              {isEn
+                ? "Verified Student ID Only • Unilak Campus COD • Zero Commission"
+                : "Khusus KTM Terverifikasi • COD Area Kampus Unilak • Tanpa Biaya Komisi"}
             </p>
           </div>
 
@@ -603,13 +656,13 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="rounded-md border border-[#111827] bg-[#FACC15] px-2.5 py-0.5 text-xs font-extrabold text-[#111827]">
-              Etalase UMKM Gratis
+              {isEn ? "Free MSME Showcase" : "Etalase UMKM Gratis"}
             </span>
             <h2
               id="judul-etalase-umkm"
               className="text-xl font-extrabold tracking-tight text-[#111827] sm:text-2xl"
             >
-              Karya &amp; Jajanan Mahasiswa Unilak
+              {isEn ? "Unilak Student Crafts & Snacks" : "Karya & Jajanan Mahasiswa Unilak"}
             </h2>
           </div>
 
@@ -618,7 +671,7 @@ export default function Home() {
             onClick={() => selectCategoryAndScroll("umkm")}
             className="inline-flex min-h-11 items-center rounded-xl px-2 text-sm font-bold text-[#15803D] hover:underline"
           >
-            Lihat semua UMKM
+            {isEn ? "See all MSMEs" : "Lihat semua UMKM"}
           </button>
         </div>
 
@@ -628,6 +681,7 @@ export default function Home() {
               key={`spotlight-${item.id}`}
               item={item}
               compact
+              locale={locale}
               isSaved={savedIds.includes(item.id)}
               onToggleSave={toggleSave}
               onOrderCod={openCodModal}
@@ -648,10 +702,12 @@ export default function Home() {
               id="judul-katalog"
               className="text-xl font-extrabold tracking-tight text-[#111827] sm:text-2xl"
             >
-              Katalog Kampus
+              {isEn ? "Campus Catalog" : "Katalog Kampus"}
             </h2>
             <p className="text-xs font-semibold text-[#475569] sm:text-sm">
-              Menampilkan {filteredProducts.length} barang &amp; jasa mahasiswa (Data pratinjau)
+              {isEn
+                ? `Showing ${filteredProducts.length} student items & services`
+                : `Menampilkan ${filteredProducts.length} barang & jasa mahasiswa (Data pratinjau)`}
             </p>
           </div>
 
@@ -661,7 +717,7 @@ export default function Home() {
               onClick={resetFilters}
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 text-xs font-bold text-[#111827] hover:bg-[#F8FAFC]"
             >
-              Reset Filter
+              {isEn ? "Reset Filter" : "Reset Filter"}
             </button>
           )}
         </div>
@@ -674,7 +730,7 @@ export default function Home() {
           <div className="category-sticky-inner px-4 py-2 sm:px-6 lg:px-10">
             <div
               role="toolbar"
-              aria-label="Filter kategori katalog"
+              aria-label={isEn ? "Catalog category filter" : "Filter kategori katalog"}
               className="category-scroll-strip flex flex-nowrap items-center gap-2 pb-0.5"
             >
               {CATEGORIES.map((cat) => {
@@ -691,7 +747,7 @@ export default function Home() {
                         : "border border-[#111827]/35 bg-white text-[#111827] hover:border-[#111827] hover:bg-[#F0FDF4]"
                     }`}
                   >
-                    {cat.label}
+                    {isEn ? EN_CATEGORY_LABELS[cat.id] : cat.label}
                   </button>
                 );
               })}
@@ -699,7 +755,9 @@ export default function Home() {
             {hasActiveFilters && (
               <div className="mt-1.5 flex items-center justify-between gap-2 text-xs font-bold text-[#14532D]">
                 <span>
-                  Filter aktif: menampilkan {filteredProducts.length} listing
+                  {isEn
+                    ? `Active filter: showing ${filteredProducts.length} listings`
+                    : `Filter aktif: menampilkan ${filteredProducts.length} listing`}
                 </span>
                 <button
                   type="button"
@@ -718,7 +776,7 @@ export default function Home() {
           <div className="flex items-center gap-2 sm:hidden">
             <div className="flex-1">
               <label htmlFor="sort-mobile" className="sr-only">
-                Urutkan katalog
+                {isEn ? "Sort catalog" : "Urutkan katalog"}
               </label>
               <select
                 id="sort-mobile"
@@ -726,9 +784,9 @@ export default function Home() {
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827]"
               >
-                <option value="terbaru">Urutkan: Terbaru</option>
-                <option value="termurah">Harga Terendah</option>
-                <option value="termahal">Harga Tertinggi</option>
+                <option value="terbaru">{isEn ? "Sort: Newest" : "Urutkan: Terbaru"}</option>
+                <option value="termurah">{isEn ? "Lowest Price" : "Harga Terendah"}</option>
+                <option value="termahal">{isEn ? "Highest Price" : "Harga Tertinggi"}</option>
               </select>
             </div>
             <button
@@ -738,7 +796,11 @@ export default function Home() {
               aria-controls="panel-filter-lanjut"
               className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3.5 text-xs font-extrabold text-[#111827]"
             >
-              {showAdvancedFilters ? "Tutup Filter" : "Filter"}
+              {showAdvancedFilters
+                ? isEn
+                  ? "Close Filter"
+                  : "Tutup Filter"
+                : "Filter"}
             </button>
           </div>
 
@@ -753,7 +815,7 @@ export default function Home() {
                 htmlFor="filter-fakultas"
                 className="block text-xs font-bold text-[#334155]"
               >
-                Fakultas
+                {isEn ? "Faculty" : "Fakultas"}
               </label>
               <select
                 id="filter-fakultas"
@@ -761,7 +823,7 @@ export default function Home() {
                 onChange={(e) => setSelectedFaculty(e.target.value)}
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               >
-                <option value="semua">Semua Fakultas</option>
+                <option value="semua">{isEn ? "All Faculties" : "Semua Fakultas"}</option>
                 {FACULTIES.map((fac) => (
                   <option key={fac} value={fac}>
                     {fac}
@@ -775,7 +837,7 @@ export default function Home() {
                 htmlFor="filter-kondisi"
                 className="block text-xs font-bold text-[#334155]"
               >
-                Kondisi Barang
+                {isEn ? "Condition" : "Kondisi Barang"}
               </label>
               <select
                 id="filter-kondisi"
@@ -785,10 +847,10 @@ export default function Home() {
                 }
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               >
-                <option value="semua">Semua Kondisi</option>
+                <option value="semua">{isEn ? "All Conditions" : "Semua Kondisi"}</option>
                 {CONDITIONS.map((cond) => (
                   <option key={cond} value={cond}>
-                    {cond}
+                    {isEn ? EN_CONDITION_LABELS[cond] : cond}
                   </option>
                 ))}
               </select>
@@ -799,7 +861,7 @@ export default function Home() {
                 htmlFor="filter-urutkan"
                 className="block text-xs font-bold text-[#334155]"
               >
-                Urutkan
+                {isEn ? "Sort By" : "Urutkan"}
               </label>
               <select
                 id="filter-urutkan"
@@ -807,9 +869,9 @@ export default function Home() {
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-sm font-semibold text-[#111827]"
               >
-                <option value="terbaru">Terbaru</option>
-                <option value="termurah">Harga Terendah</option>
-                <option value="termahal">Harga Tertinggi</option>
+                <option value="terbaru">{isEn ? "Newest" : "Terbaru"}</option>
+                <option value="termurah">{isEn ? "Lowest Price" : "Harga Terendah"}</option>
+                <option value="termahal">{isEn ? "Highest Price" : "Harga Tertinggi"}</option>
               </select>
             </div>
 
@@ -825,8 +887,12 @@ export default function Home() {
                 }`}
               >
                 {onlySaved
-                  ? `Disimpan (${savedIds.length})`
-                  : `Tampilkan Disimpan (${savedIds.length})`}
+                  ? isEn
+                    ? `Saved (${savedIds.length})`
+                    : `Disimpan (${savedIds.length})`
+                  : isEn
+                    ? `Show Saved (${savedIds.length})`
+                    : `Tampilkan Disimpan (${savedIds.length})`}
               </button>
             </div>
           </div>
@@ -839,18 +905,21 @@ export default function Home() {
             className="rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-8 text-center"
           >
             <h3 className="text-lg font-extrabold text-[#111827]">
-              Belum ada listing yang cocok dengan filter ini
+              {isEn
+                ? "No listings match this filter yet"
+                : "Belum ada listing yang cocok dengan filter ini"}
             </h3>
             <p className="mx-auto mt-1.5 max-w-md text-sm font-medium text-[#334155]">
-              Ubah kata kunci pencarian atau pilih kategori/fakultas lain untuk melihat
-              listing mahasiswa Unilak.
+              {isEn
+                ? "Try a different keyword or change the category/faculty filter to browse Unilak student listings."
+                : "Ubah kata kunci pencarian atau pilih kategori/fakultas lain untuk melihat listing mahasiswa Unilak."}
             </p>
             <button
               type="button"
               onClick={resetFilters}
               className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-[#15803D] px-6 py-2 text-sm font-bold text-white hover:bg-[#166534]"
             >
-              Tampilkan Semua Produk
+              {isEn ? "Show All Products" : "Tampilkan Semua Produk"}
             </button>
           </div>
         ) : (
@@ -862,6 +931,7 @@ export default function Home() {
               <ListingCard
                 key={item.id}
                 item={item}
+                locale={locale}
                 isSaved={savedIds.includes(item.id)}
                 onToggleSave={toggleSave}
                 onOrderCod={openCodModal}
@@ -880,17 +950,21 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 id="judul-cod" className="text-lg font-extrabold text-[#111827]">
-              {activeSpots.length} Titik COD Aktif di Kampus Unilak
+              {isEn
+                ? `${activeSpots.length} Active COD Spots at Unilak Campus`
+                : `${activeSpots.length} Titik COD Aktif di Kampus Unilak`}
             </h2>
             <p className="text-xs font-medium text-[#334155] sm:text-sm">
-              Transaksi Rilis 1 memakai COD tunai langsung di area kampus tanpa potongan.
+              {isEn
+                ? "Release 1 transactions use direct cash COD on campus with zero deductions."
+                : "Transaksi Rilis 1 memakai COD tunai langsung di area kampus tanpa potongan."}
             </p>
           </div>
           <Link
             href="/profil"
             className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
           >
-            Status KTM: {profile.ktmStatus}
+            {isEn ? `KTM Status: ${profile.ktmStatus}` : `Status KTM: ${profile.ktmStatus}`}
           </Link>
         </div>
 

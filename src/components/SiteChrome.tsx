@@ -6,13 +6,22 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 
-function DesktopNavLinks({ activeOrdersCount }: { activeOrdersCount: number }) {
+function DesktopNavLinks({
+  activeOrdersCount,
+  locale,
+}: {
+  activeOrdersCount: number;
+  locale: "id" | "en";
+}) {
   const pathname = usePathname();
   const isActivePath = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav aria-label="Navigasi utama" className="hidden items-center gap-1.5 md:flex">
+    <nav
+      aria-label={locale === "en" ? "Primary navigation" : "Navigasi utama"}
+      className="hidden items-center gap-1.5 md:flex"
+    >
       <Link
         href="/"
         aria-current={isActivePath("/") ? "page" : undefined}
@@ -22,7 +31,7 @@ function DesktopNavLinks({ activeOrdersCount }: { activeOrdersCount: number }) {
             : "text-[#111827] hover:bg-[#F0FDF4]"
         }`}
       >
-        Beranda
+        {locale === "en" ? "Home" : "Beranda"}
       </Link>
       <Link
         href="/jual"
@@ -33,7 +42,7 @@ function DesktopNavLinks({ activeOrdersCount }: { activeOrdersCount: number }) {
             : "bg-[#FACC15] text-[#111827] hover:bg-[#FDE047]"
         }`}
       >
-        + Jual
+        {locale === "en" ? "+ Sell" : "+ Jual"}
       </Link>
       <Link
         href="/pesanan"
@@ -44,7 +53,7 @@ function DesktopNavLinks({ activeOrdersCount }: { activeOrdersCount: number }) {
             : "text-[#111827] hover:bg-[#F0FDF4]"
         }`}
       >
-        <span>Pesanan</span>
+        <span>{locale === "en" ? "Orders" : "Pesanan"}</span>
         {activeOrdersCount > 0 && (
           <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FACC15] px-1.5 text-[11px] font-extrabold text-[#111827] ring-1 ring-[#111827]">
             {activeOrdersCount}
@@ -55,7 +64,13 @@ function DesktopNavLinks({ activeOrdersCount }: { activeOrdersCount: number }) {
   );
 }
 
-function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
+function MobileBottomNav({
+  activeOrdersCount,
+  locale,
+}: {
+  activeOrdersCount: number;
+  locale: "id" | "en";
+}) {
   const pathname = usePathname();
   const isActivePath = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -69,7 +84,7 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/"
-            aria-label="Beranda"
+            aria-label={locale === "en" ? "Home" : "Beranda"}
             aria-current={pathname === "/" ? "page" : undefined}
             className={`flex min-h-11 items-center justify-center rounded-xl px-1 ${
               pathname === "/"
@@ -93,7 +108,7 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/#katalog"
-            aria-label="Cari produk"
+            aria-label={locale === "en" ? "Search products" : "Cari produk"}
             onClick={() => {
               if (typeof window !== "undefined" && window.location.pathname === "/") {
                 document.getElementById("cari-produk")?.focus();
@@ -118,7 +133,7 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/jual"
-            aria-label="Pasang listing"
+            aria-label={locale === "en" ? "Create listing" : "Pasang listing"}
             aria-current={isActivePath("/jual") ? "page" : undefined}
             className={`flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] px-1 ${
               isActivePath("/jual")
@@ -144,8 +159,12 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
             href="/pesanan"
             aria-label={
               activeOrdersCount > 0
-                ? `Pesanan (${activeOrdersCount} aktif)`
-                : "Pesanan"
+                ? locale === "en"
+                  ? `Orders (${activeOrdersCount} active)`
+                  : `Pesanan (${activeOrdersCount} aktif)`
+                : locale === "en"
+                  ? "Orders"
+                  : "Pesanan"
             }
             aria-current={isActivePath("/pesanan") ? "page" : undefined}
             className={`relative flex min-h-11 items-center justify-center rounded-xl px-1 ${
@@ -179,7 +198,7 @@ function MobileBottomNav({ activeOrdersCount }: { activeOrdersCount: number }) {
         <li>
           <Link
             href="/profil"
-            aria-label="Profil"
+            aria-label={locale === "en" ? "Profile" : "Profil"}
             aria-current={isActivePath("/profil") || isActivePath("/admin") ? "page" : undefined}
             className={`flex min-h-11 items-center justify-center rounded-xl px-1 ${
               isActivePath("/profil") || isActivePath("/admin")
@@ -218,6 +237,12 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     markNotificationRead,
     markAllNotificationsRead,
     profile,
+    locale,
+    toggleLocale,
+    resolvedTheme,
+    themePreference,
+    toggleTheme,
+    resetThemeToSystem,
   } = useMarketplace();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -256,13 +281,16 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     }
   };
 
+  const isEn = locale === "en";
+  const isDark = resolvedTheme === "dark";
+
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#111827]">
       <a
         href="#konten-utama"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:border-2 focus:border-[#111827] focus:bg-[#FACC15] focus:px-4 focus:py-2.5 focus:font-bold focus:text-[#111827]"
       >
-        Lewati ke konten utama
+        {isEn ? "Skip to main content" : "Lewati ke konten utama"}
       </a>
 
       {/* Header satu baris bersih di desktop, ringkas di mobile */}
@@ -270,17 +298,17 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         ref={headerRef}
         className="border-b-2 border-[#111827] bg-white lg:sticky lg:top-0 lg:z-40"
       >
-        <div className="mx-auto max-w-[1440px] px-4 py-2.5 sm:px-6 lg:px-10">
-          <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
+        <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-6 lg:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-2.5 rounded-xl py-0.5 pr-1"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl py-0.5 pr-1 sm:gap-2.5"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] text-base font-extrabold text-[#FACC15] sm:h-10 sm:w-10 sm:text-lg">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] text-sm font-extrabold text-[#FACC15] sm:h-10 sm:w-10 sm:text-lg">
                 U
               </span>
-              <span className="text-base font-extrabold tracking-tight text-[#111827] sm:text-xl">
-                unilakmart.id
+              <span className="text-sm font-extrabold tracking-tight text-[#111827] min-[380px]:text-base sm:text-xl">
+                unilakmart<span className="max-[370px]:hidden">.id</span>
               </span>
             </Link>
 
@@ -288,7 +316,9 @@ export function SiteChrome({ children }: { children: ReactNode }) {
             <search className="order-3 w-full lg:order-2 lg:w-auto lg:max-w-md lg:flex-1">
               <form onSubmit={handleSearchSubmit}>
                 <label htmlFor="cari-produk" className="sr-only">
-                  Cari buku kuliah, jajanan UMKM, atau perlengkapan kos di Unilak
+                  {isEn
+                    ? "Search textbooks, student UMKM snacks, or dorm items at Unilak"
+                    : "Cari buku kuliah, jajanan UMKM, atau perlengkapan kos di Unilak"}
                 </label>
                 <div className="flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3 py-1 transition-colors focus-within:bg-white">
                   <input
@@ -297,7 +327,11 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari buku, barang kos, atau UMKM..."
+                    placeholder={
+                      isEn
+                        ? "Search books, dorm items, or UMKM..."
+                        : "Cari buku, barang kos, atau UMKM..."
+                    }
                     autoCorrect="off"
                     spellCheck={false}
                     enterKeyHint="search"
@@ -308,14 +342,18 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                       type="button"
                       onClick={() => setSearchQuery("")}
                       className="mr-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold text-[#111827] hover:bg-[#E2E8F0]"
-                      aria-label="Hapus kata kunci pencarian"
+                      aria-label={
+                        isEn ? "Clear search query" : "Hapus kata kunci pencarian"
+                      }
                     >
                       ✕
                     </button>
                   )}
                   <button
                     type="submit"
-                    aria-label="Cari produk di katalog"
+                    aria-label={
+                      isEn ? "Search catalog products" : "Cari produk di katalog"
+                    }
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FACC15] text-[#111827] ring-1 ring-[#111827] hover:bg-[#FDE047] active:translate-x-[1px] active:translate-y-[1px]"
                   >
                     <svg
@@ -334,25 +372,104 @@ export function SiteChrome({ children }: { children: ReactNode }) {
               </form>
             </search>
 
-            {/* Navigasi Utama + Lonceng Notifikasi + Akun */}
-            <div className="order-2 flex items-center gap-2 lg:order-3">
+            {/* Navigasi Utama + Bahasa ID/EN + Tema Dark/Light + Lonceng Notifikasi + Akun */}
+            <div className="order-2 flex items-center gap-1 sm:gap-2 lg:order-3">
               <Suspense
                 fallback={
                   <div className="hidden items-center gap-1.5 md:flex">
                     <span className="inline-flex min-h-11 items-center px-3.5 text-sm font-bold text-[#111827]">
-                      Beranda
+                      {isEn ? "Home" : "Beranda"}
                     </span>
                     <span className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 text-sm font-extrabold text-[#111827]">
-                      + Jual
+                      {isEn ? "+ Sell" : "+ Jual"}
                     </span>
                     <span className="inline-flex min-h-11 items-center px-3.5 text-sm font-bold text-[#111827]">
-                      Pesanan
+                      {isEn ? "Orders" : "Pesanan"}
                     </span>
                   </div>
                 }
               >
-                <DesktopNavLinks activeOrdersCount={activeOrdersCount} />
+                <DesktopNavLinks
+                  activeOrdersCount={activeOrdersCount}
+                  locale={locale}
+                />
               </Suspense>
+
+              {/* Toggle Bahasa ID / EN */}
+              <button
+                id="btn-toggle-bahasa"
+                type="button"
+                onClick={toggleLocale}
+                aria-pressed={isEn}
+                aria-label={
+                  isEn
+                    ? "Switch language to Bahasa Indonesia (currently EN)"
+                    : "Ubah bahasa ke Bahasa Inggris (saat ini ID)"
+                }
+                className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-xl border-2 border-[#111827] bg-white px-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] sm:px-2.5"
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  className="hidden h-4 w-4 sm:inline-block"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="10" cy="10" r="7.5" />
+                  <path d="M2.5 10h15M10 2.5c2 2.2 3 4.8 3 7.5s-1 5.3-3 7.5c-2-2.2-3-4.8-3-7.5s1-5.3 3-7.5Z" />
+                </svg>
+                <span>{locale.toUpperCase()}</span>
+              </button>
+
+              {/* Toggle Dark / Light Mode (Otomatis deteksi tema perangkat) */}
+              <button
+                id="btn-toggle-tema"
+                type="button"
+                onClick={toggleTheme}
+                aria-pressed={isDark}
+                aria-label={
+                  isDark
+                    ? isEn
+                      ? "Switch to light mode"
+                      : "Ubah ke mode terang"
+                    : isEn
+                      ? "Switch to dark mode"
+                      : "Ubah ke mode gelap"
+                }
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-white text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px]"
+              >
+                {isDark ? (
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <circle cx="10" cy="10" r="3.8" />
+                    <path
+                      d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M15.7 4.3l-1.4 1.4M5.7 14.3l-1.4 1.4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M15.6 12.8A6.5 6.5 0 0 1 7.2 4.4a6.5 6.5 0 1 0 8.4 8.4Z"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
 
               <button
                 type="button"
@@ -387,7 +504,13 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 href="/profil"
                 className="hidden min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-sm font-bold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] md:inline-flex"
               >
-                {profile.ktmStatus === "Terverifikasi" ? "Profil KTM" : "Masuk KTM"}
+                {profile.ktmStatus === "Terverifikasi"
+                  ? isEn
+                    ? "KTM Profile"
+                    : "Profil KTM"
+                  : isEn
+                    ? "KTM Sign In"
+                    : "Masuk KTM"}
               </Link>
 
               <button
@@ -395,7 +518,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
                 aria-expanded={mobileMenuOpen}
                 aria-controls="menu-mobile"
-                className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4] md:hidden"
+                className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-2.5 py-2 text-xs font-bold text-[#111827] hover:bg-[#F0FDF4] md:hidden"
               >
                 Menu
               </button>
@@ -405,9 +528,60 @@ export function SiteChrome({ children }: { children: ReactNode }) {
           {mobileMenuOpen && (
             <nav
               id="menu-mobile"
-              aria-label="Menu sekunder mobile"
-              className="mt-2.5 flex flex-col gap-1 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-2.5 md:hidden"
+              aria-label={
+                isEn ? "Secondary mobile menu" : "Menu sekunder mobile"
+              }
+              className="mt-2.5 flex flex-col gap-1.5 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-2.5 md:hidden"
             >
+              <div className="grid grid-cols-2 gap-1.5 border-b border-[#111827]/20 pb-2">
+                <button
+                  type="button"
+                  onClick={toggleLocale}
+                  aria-pressed={isEn}
+                  className="inline-flex min-h-11 items-center justify-between rounded-xl border border-[#111827]/35 bg-white px-3 text-xs font-extrabold text-[#111827]"
+                >
+                  <span>{isEn ? "Language" : "Bahasa"}</span>
+                  <span className="rounded bg-[#FACC15] px-1.5 py-0.5 text-[11px] font-extrabold text-[#111827]">
+                    {isEn ? "EN" : "ID"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-pressed={isDark}
+                  className="inline-flex min-h-11 items-center justify-between rounded-xl border border-[#111827]/35 bg-white px-3 text-xs font-extrabold text-[#111827]"
+                >
+                  <span>{isEn ? "Theme" : "Tema"}</span>
+                  <span>
+                    {isDark
+                      ? isEn
+                        ? "Dark"
+                        : "Gelap"
+                      : isEn
+                        ? "Light"
+                        : "Terang"}
+                    {themePreference === "system"
+                      ? isEn
+                        ? " (Auto)"
+                        : " (Otomatis)"
+                      : ""}
+                  </span>
+                </button>
+              </div>
+
+              {themePreference !== "system" && (
+                <button
+                  type="button"
+                  onClick={resetThemeToSystem}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#111827]/30 bg-white px-3 text-xs font-bold text-[#15803D]"
+                >
+                  {isEn
+                    ? "Follow Device Theme Automatically"
+                    : "Ikuti Tema Perangkat Otomatis"}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
@@ -425,29 +599,33 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 className="inline-flex min-h-11 items-center rounded-lg px-3 text-left text-sm font-semibold text-[#111827] hover:bg-white"
               >
                 {onlySaved
-                  ? "Tampilkan semua listing"
-                  : `Listing Disimpan (${savedIds.length})`}
+                  ? isEn
+                    ? "Show all listings"
+                    : "Tampilkan semua listing"
+                  : isEn
+                    ? `Saved Listings (${savedIds.length})`
+                    : `Listing Disimpan (${savedIds.length})`}
               </button>
               <Link
                 href="/#titik-cod"
                 onClick={() => setMobileMenuOpen(false)}
                 className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-white"
               >
-                Titik COD Kampus
+                {isEn ? "Campus COD Spots" : "Titik COD Kampus"}
               </Link>
               <Link
                 href="/masuk"
                 onClick={() => setMobileMenuOpen(false)}
                 className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-white"
               >
-                Masuk / Daftar Akun
+                {isEn ? "Sign In / Register" : "Masuk / Daftar Akun"}
               </Link>
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#15803D] hover:bg-white"
               >
-                Panel Administrator
+                {isEn ? "Administrator Panel" : "Panel Administrator"}
               </Link>
             </nav>
           )}
@@ -469,14 +647,15 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 </span>
               </div>
               <p className="text-xs font-medium leading-relaxed text-[#334155]">
-                Pasar kampus dan etalase UMKM sivitas Universitas Lancang Kuning.
-                Transaksi tatap muka COD tunai di titik kampus dengan 0% biaya admin.
+                {isEn
+                  ? "Campus marketplace and student UMKM storefront at Universitas Lancang Kuning. Direct cash COD at campus spots with 0% admin fee."
+                  : "Pasar kampus dan etalase UMKM sivitas Universitas Lancang Kuning. Transaksi tatap muka COD tunai di titik kampus dengan 0% biaya admin."}
               </p>
             </div>
 
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wide text-[#111827]">
-                Jelajah Kampus
+                {isEn ? "Explore Campus" : "Jelajah Kampus"}
               </h2>
               <ul className="mt-2 space-y-0.5 text-xs font-semibold text-[#334155]">
                 <li>
@@ -484,7 +663,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/#katalog"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    Katalog Kampus
+                    {isEn ? "Campus Catalog" : "Katalog Kampus"}
                   </Link>
                 </li>
                 <li>
@@ -492,7 +671,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/#etalase-umkm"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    Etalase UMKM Mahasiswa
+                    {isEn ? "Student UMKM Storefront" : "Etalase UMKM Mahasiswa"}
                   </Link>
                 </li>
                 <li>
@@ -500,7 +679,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/#titik-cod"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    Titik COD Kampus
+                    {isEn ? "Campus COD Spots" : "Titik COD Kampus"}
                   </Link>
                 </li>
               </ul>
@@ -508,7 +687,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
 
             <div>
               <h2 className="text-xs font-extrabold uppercase tracking-wide text-[#111827]">
-                Layanan &amp; Akun
+                {isEn ? "Services & Account" : "Layanan & Akun"}
               </h2>
               <ul className="mt-2 space-y-0.5 text-xs font-semibold text-[#334155]">
                 <li>
@@ -516,7 +695,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/jual"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    + Pasang Listing
+                    {isEn ? "+ Create Listing" : "+ Pasang Listing"}
                   </Link>
                 </li>
                 <li>
@@ -524,7 +703,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/pesanan"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    Daftar Pesanan COD
+                    {isEn ? "COD Orders List" : "Daftar Pesanan COD"}
                   </Link>
                 </li>
                 <li>
@@ -532,7 +711,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/profil"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    Profil &amp; Verifikasi KTM
+                    {isEn ? "Profile & KTM Verification" : "Profil & Verifikasi KTM"}
                   </Link>
                 </li>
                 <li>
@@ -540,7 +719,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     href="/masuk"
                     className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
                   >
-                    Masuk / Daftar Akun
+                    {isEn ? "Sign In / Register" : "Masuk / Daftar Akun"}
                   </Link>
                 </li>
               </ul>
@@ -548,35 +727,51 @@ export function SiteChrome({ children }: { children: ReactNode }) {
 
             <div className="space-y-2 rounded-2xl border border-[#111827]/25 bg-white p-4">
               <h2 className="text-xs font-extrabold text-[#14532D]">
-                Aman &amp; Patuh Privasi (UU PDP)
+                {isEn
+                  ? "Safe & Privacy Compliant (UU PDP)"
+                  : "Aman & Patuh Privasi (UU PDP)"}
               </h2>
               <p className="text-xs font-medium leading-relaxed text-[#334155]">
-                Hanya mahasiswa aktif berstatus Terverifikasi KTM. Dilarang menjual barang
-                ilegal, rokok/vape, maupun jasa joki tugas/skripsi.
+                {isEn
+                  ? "Exclusively for KTM-verified active students. Prohibited items include illegal goods, cigarettes/vapes, and academic ghostwriting services."
+                  : "Hanya mahasiswa aktif berstatus Terverifikasi KTM. Dilarang menjual barang ilegal, rokok/vape, maupun jasa joki tugas/skripsi."}
               </p>
               <p className="text-xs font-medium leading-relaxed text-[#475569]">
-                Nomor WhatsApp dirahasiakan dan baru terbuka setelah status pesanan{" "}
-                <strong className="text-[#111827]">Dijadwalkan</strong>.
+                {isEn ? (
+                  <>
+                    WhatsApp numbers remain private and unlock only after an order
+                    is <strong className="text-[#111827]">Scheduled</strong>.
+                  </>
+                ) : (
+                  <>
+                    Nomor WhatsApp dirahasiakan dan baru terbuka setelah status
+                    pesanan <strong className="text-[#111827]">Dijadwalkan</strong>.
+                  </>
+                )}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col items-start justify-between gap-2 border-t border-[#111827]/15 pt-4 text-xs font-semibold text-[#475569] sm:flex-row sm:items-center">
             <p>
-              UnilakMart Rilis 1 (Pratinjau MVP) • Universitas Lancang Kuning Pekanbaru.
+              {isEn
+                ? "UnilakMart Release 1 (MVP Preview) • Universitas Lancang Kuning Pekanbaru."
+                : "UnilakMart Rilis 1 (Pratinjau MVP) • Universitas Lancang Kuning Pekanbaru."}
             </p>
             <Link
               href="/admin"
               className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
             >
-              Panel Moderasi Admin (Pratinjau)
+              {isEn
+                ? "Admin Moderation Panel (Preview)"
+                : "Panel Moderasi Admin (Pratinjau)"}
             </Link>
           </div>
         </div>
       </footer>
 
       <Suspense fallback={null}>
-        <MobileBottomNav activeOrdersCount={activeOrdersCount} />
+        <MobileBottomNav activeOrdersCount={activeOrdersCount} locale={locale} />
       </Suspense>
 
       <ModalDialog
@@ -588,10 +783,12 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="judul-modal-notifikasi" className="text-lg font-extrabold text-[#111827]">
-              Notifikasi Pesanan &amp; Akun
+              {isEn
+                ? "Order & Account Notifications"
+                : "Notifikasi Pesanan & Akun"}
             </h2>
             <p className="mt-0.5 text-xs font-semibold text-[#475569]">
-              {unreadCount} belum dibaca
+              {isEn ? `${unreadCount} unread` : `${unreadCount} belum dibaca`}
             </p>
           </div>
           <button
@@ -611,16 +808,20 @@ export function SiteChrome({ children }: { children: ReactNode }) {
               onClick={markAllNotificationsRead}
               className="min-h-11 rounded-xl border border-[#111827]/35 bg-[#F0FDF4] px-3 py-1.5 text-xs font-bold text-[#14532D] hover:bg-[#DCFCE7]"
             >
-              Tandai Semua Dibaca
+              {isEn ? "Mark All Read" : "Tandai Semua Dibaca"}
             </button>
           </div>
         )}
 
         {notifications.length === 0 ? (
           <div className="mt-4 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-5 text-center">
-            <p className="text-sm font-bold text-[#111827]">Belum ada notifikasi baru</p>
+            <p className="text-sm font-bold text-[#111827]">
+              {isEn ? "No new notifications" : "Belum ada notifikasi baru"}
+            </p>
             <p className="mt-1 text-xs font-medium text-[#334155]">
-              Kabar status KTM dan transaksi COD Anda akan muncul di sini.
+              {isEn
+                ? "Updates on your KTM status and COD orders will appear here."
+                : "Kabar status KTM dan transaksi COD Anda akan muncul di sini."}
             </p>
           </div>
         ) : (
@@ -637,7 +838,14 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   {notif.message}
                 </p>
                 <p className="mt-1.5 text-[11px] font-bold text-[#475569]">
-                  {notif.timestamp} • {notif.read ? "Sudah dibaca" : "Belum dibaca"}
+                  {notif.timestamp} •{" "}
+                  {notif.read
+                    ? isEn
+                      ? "Read"
+                      : "Sudah dibaca"
+                    : isEn
+                      ? "Unread"
+                      : "Belum dibaca"}
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   <Link
@@ -648,7 +856,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     }}
                     className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#166534]"
                   >
-                    Buka Halaman Terkait
+                    {isEn ? "Open Related Page" : "Buka Halaman Terkait"}
                   </Link>
                   {!notif.read && (
                     <button
@@ -656,7 +864,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                       onClick={() => markNotificationRead(notif.id)}
                       className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3 py-1.5 text-xs font-bold text-[#111827]"
                     >
-                      Tandai Dibaca
+                      {isEn ? "Mark Read" : "Tandai Dibaca"}
                     </button>
                   )}
                 </div>
