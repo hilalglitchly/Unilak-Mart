@@ -28,6 +28,7 @@ export function ProductIllustration({
             fill="#15803D"
             stroke="#111827"
             strokeWidth="4"
+            className="svg-stroke-edge"
           />
           <rect
             x="30"
@@ -38,6 +39,7 @@ export function ProductIllustration({
             fill="#15803D"
             stroke="#111827"
             strokeWidth="3.5"
+            className="svg-stroke-edge"
           />
           <rect
             x="48"
@@ -74,6 +76,7 @@ export function ProductIllustration({
             fill="#111827"
             stroke="#111827"
             strokeWidth="3.5"
+            className="svg-dark-shape"
           />
           <rect
             x="58"
@@ -94,6 +97,7 @@ export function ProductIllustration({
             fill="#FFFFFF"
             stroke="#111827"
             strokeWidth="3.5"
+            className="svg-stroke-edge"
           />
           <circle cx="52" cy="50" r="5" fill="#FACC15" />
         </svg>
@@ -112,6 +116,7 @@ export function ProductIllustration({
             stroke="#111827"
             strokeWidth="10"
             strokeLinecap="round"
+            className="svg-stroke-edge"
           />
           <rect
             x="36"
@@ -122,6 +127,7 @@ export function ProductIllustration({
             fill="#111827"
             stroke="#FFFFFF"
             strokeWidth="3"
+            className="svg-dark-shape"
           />
           <rect
             x="130"
@@ -132,6 +138,7 @@ export function ProductIllustration({
             fill="#FACC15"
             stroke="#111827"
             strokeWidth="3"
+            className="svg-stroke-edge"
           />
         </svg>
       );
@@ -151,12 +158,14 @@ export function ProductIllustration({
             fill="#111827"
             stroke="#111827"
             strokeWidth="3"
+            className="svg-dark-shape"
           />
           <path
             d="M64 34 L156 34 L172 92 L48 92 Z"
             fill="#111827"
             stroke="#FFFFFF"
             strokeWidth="2.5"
+            className="svg-dark-shape"
           />
           <rect
             x="56"
@@ -178,7 +187,7 @@ export function ProductIllustration({
           role="img"
           aria-label="Ilustrasi kartun bola voli UKM"
         >
-          <circle cx="104" cy="68" r="46" fill="#111827" />
+          <circle cx="104" cy="68" r="46" fill="#111827" className="svg-dark-shadow" />
           <circle
             cx="100"
             cy="64"
@@ -186,6 +195,7 @@ export function ProductIllustration({
             fill="#FFFFFF"
             stroke="#111827"
             strokeWidth="3.5"
+            className="svg-stroke-edge"
           />
           <path d="M58 64 Q100 38 142 64 Q100 90 58 64 Z" fill="#111827" />
           <rect
@@ -217,6 +227,7 @@ export function ProductIllustration({
             fill="#FACC15"
             stroke="#111827"
             strokeWidth="7"
+            className="svg-stroke-edge"
           />
           <circle cx="104" cy="80" r="38" fill="#15803D" />
           <circle
@@ -226,6 +237,7 @@ export function ProductIllustration({
             fill="#111827"
             stroke="#111827"
             strokeWidth="3.5"
+            className="svg-dark-shape"
           />
           <text
             x="100"

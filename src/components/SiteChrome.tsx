@@ -285,7 +285,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white text-[#111827]">
+    <div className="flex min-h-dvh flex-col text-[#111827]">
       <a
         href="#konten-utama"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:border-2 focus:border-[#111827] focus:bg-[#FACC15] focus:px-4 focus:py-2.5 focus:font-bold focus:text-[#111827]"
@@ -794,7 +794,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setNotifOpen(false)}
-            aria-label="Tutup dialog notifikasi"
+            aria-label={isEn ? "Close notifications dialog" : "Tutup dialog notifikasi"}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold text-[#111827] hover:bg-[#E2E8F0]"
           >
             ✕

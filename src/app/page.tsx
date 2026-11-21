@@ -535,15 +535,17 @@ export default function Home() {
                 fill="#DCFCE7"
                 stroke="#111827"
                 strokeWidth="3"
+                className="svg-hero-halo"
               />
-              <circle cx="172" cy="86" r="46" fill="#111827" />
-              <circle cx="152" cy="126" r="52" fill="#111827" />
-              <circle cx="226" cy="122" r="48" fill="#111827" />
+              <circle cx="172" cy="86" r="46" fill="#111827" className="svg-dark-shape" />
+              <circle cx="152" cy="126" r="52" fill="#111827" className="svg-dark-shape" />
+              <circle cx="226" cy="122" r="48" fill="#111827" className="svg-dark-shape" />
               <path
                 d="M134 170 L248 170 C282 170 304 200 314 256 L322 318 L92 318 L100 256 C108 200 120 170 134 170 Z"
                 fill="#FACC15"
                 stroke="#111827"
                 strokeWidth="3.5"
+                className="svg-stroke-edge"
               />
               <path
                 d="M174 170 L224 170 L218 318 L180 318 Z"
@@ -591,6 +593,7 @@ export default function Home() {
                 fill="#15803D"
                 stroke="#111827"
                 strokeWidth="2.5"
+                className="svg-stroke-edge"
               />
               <ellipse
                 cx="240"
@@ -600,8 +603,9 @@ export default function Home() {
                 fill="#15803D"
                 stroke="#111827"
                 strokeWidth="2.5"
+                className="svg-stroke-edge"
               />
-              <rect x="66" y="196" width="110" height="122" rx="12" fill="#111827" />
+              <rect x="66" y="196" width="110" height="122" rx="12" fill="#111827" className="svg-dark-shadow" />
               <rect
                 x="62"
                 y="192"
@@ -611,6 +615,7 @@ export default function Home() {
                 fill="#15803D"
                 stroke="#111827"
                 strokeWidth="3"
+                className="svg-stroke-edge"
               />
               <circle
                 cx="117"
@@ -645,9 +650,10 @@ export default function Home() {
                 fill="#111827"
                 stroke="#111827"
                 strokeWidth="3"
+                className="svg-dark-shape"
               />
               <circle cx="320" cy="270" r="8" fill="#FACC15" />
-              <rect x="232" y="306" width="156" height="11" rx="5" fill="#111827" />
+              <rect x="232" y="306" width="156" height="11" rx="5" fill="#111827" className="svg-dark-shape" />
             </svg>
           </div>
         </div>
