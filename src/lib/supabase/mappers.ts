@@ -1,6 +1,8 @@
 import type { Database } from "./database.types";
 import {
   formatRupiah,
+  type AdminUserItem,
+  type CategoryRefItem,
   type CodSpotItem,
   type IllustrationType,
   type ItemCondition,
@@ -19,6 +21,7 @@ type ListingRow = Database["public"]["Tables"]["listings"]["Row"];
 type PublicProfileRow = Database["public"]["Tables"]["public_profiles"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type CodSpotRow = Database["public"]["Tables"]["cod_spots"]["Row"];
+type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
@@ -224,5 +227,29 @@ export function mapDbNotification(row: NotificationRow): NotificationItem {
       hour: "2-digit",
       minute: "2-digit",
     }),
+  };
+}
+
+export function mapDbAdminUser(row: ProfileRow): AdminUserItem {
+  return {
+    id: row.id,
+    nim: row.identifier_number ?? (row.deleted_at ? "ANONIM" : "-"),
+    name: row.name,
+    prodi: row.unit_or_prodi,
+    faculty: row.faculty || "-",
+    email: row.email,
+    ktmStatus: row.ktm_status as KtmStatus,
+    isUmkm: row.is_umkm,
+    isSuspended: row.is_suspended,
+    systemRole: row.system_role === "admin" ? "admin" : "user",
+    deletedAt: row.deleted_at ?? undefined,
+  };
+}
+
+export function mapDbCategoryRef(row: CategoryRow): CategoryRefItem {
+  return {
+    slug: row.slug,
+    name: row.name,
+    active: row.active,
   };
 }

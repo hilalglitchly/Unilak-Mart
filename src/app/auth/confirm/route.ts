@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
       });
       if (!error) {
         redirectTo.pathname = next;
+        if (type === "recovery" && next === "/profil") {
+          redirectTo.searchParams.set("mode", "reset-sandi");
+          redirectTo.hash = "ubah-sandi";
+        }
         return NextResponse.redirect(redirectTo);
       }
     } else if (code) {

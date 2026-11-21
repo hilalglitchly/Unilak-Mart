@@ -706,6 +706,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      run_marketplace_maintenance: { Args: never; Returns: Json }
       submit_ktm_request: {
         Args: {
           p_faculty: string

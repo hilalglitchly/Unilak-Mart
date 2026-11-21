@@ -10,11 +10,19 @@ import {
   type ReactNode,
 } from "react";
 import {
+  addCodSpotAction,
   deleteApprovedKtmObjectAction,
+  runAdminMaintenanceAction,
+  toggleCategoryActiveAction,
+  toggleUserSuspendedAction,
+  toggleUserUmkmAction,
 } from "@/app/admin/actions";
 import { signOutAction } from "@/app/masuk/actions";
+import type { MaintenanceSummary } from "@/lib/marketplace-maintenance";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
+  mapDbAdminUser,
+  mapDbCategoryRef,
   mapDbCodSpot,
   mapDbKtmQueueItem,
   mapDbListingToProduct,
@@ -25,6 +33,8 @@ import {
   mapDbReview,
 } from "@/lib/supabase/mappers";
 import {
+  INITIAL_ADMIN_USERS,
+  INITIAL_CATEGORY_REFS,
   INITIAL_COD_SPOTS,
   INITIAL_KTM_QUEUE,
   INITIAL_MY_LISTING_IDS,
@@ -35,7 +45,9 @@ import {
   INITIAL_REPORTS,
   SAMPLE_PRODUCTS,
   formatRupiah,
+  type AdminUserItem,
   type CategoryId,
+  type CategoryRefItem,
   type CodSpotItem,
   type ItemCondition,
   type KtmQueueItem,
@@ -108,9 +120,11 @@ interface MarketplaceContextValue {
   updateMyListing: (
     productId: string,
     patch: { price?: number; stock?: number; hidden?: boolean }
-  ) => void;
-  deleteMyListing: (productId: string) => void;
-  toggleListingStockZero: (productId: string) => void;
+  ) => Promise<{ ok: boolean; error?: string }>;
+  deleteMyListing: (productId: string) => Promise<{ ok: boolean; error?: string }>;
+  toggleListingStockZero: (
+    productId: string
+  ) => Promise<{ ok: boolean; error?: string }>;
   hideListingByAdmin: (productId: string) => void;
   notifications: NotificationItem[];
   markNotificationRead: (id: string) => void;
@@ -155,6 +169,21 @@ interface MarketplaceContextValue {
   ) => Promise<{ ok: boolean; error?: string }>;
   codSpots: CodSpotItem[];
   toggleCodSpot: (spotId: string) => Promise<{ ok: boolean; error?: string }>;
+  addCodSpot: (input: {
+    name: string;
+    location: string;
+    hours: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  categoryRefs: CategoryRefItem[];
+  toggleCategoryActive: (slug: string) => Promise<{ ok: boolean; error?: string }>;
+  adminUsers: AdminUserItem[];
+  toggleUserUmkm: (userId: string) => Promise<{ ok: boolean; error?: string }>;
+  toggleUserSuspended: (userId: string) => Promise<{ ok: boolean; error?: string }>;
+  runMaintenance: () => Promise<{
+    ok: boolean;
+    summary?: MaintenanceSummary;
+    error?: string;
+  }>;
 }
 
 const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
@@ -179,15 +208,20 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const [ktmQueue, setKtmQueue] = useState<KtmQueueItem[]>(INITIAL_KTM_QUEUE);
   const [reports, setReports] = useState<ReportItem[]>(INITIAL_REPORTS);
   const [codSpots, setCodSpots] = useState<CodSpotItem[]>(INITIAL_COD_SPOTS);
+  const [categoryRefs, setCategoryRefs] =
+    useState<CategoryRefItem[]>(INITIAL_CATEGORY_REFS);
+  const [adminUsers, setAdminUsers] =
+    useState<AdminUserItem[]>(INITIAL_ADMIN_USERS);
 
   const refreshSupabaseData = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
     try {
       const supabase = createClient();
 
-      const [spotsRes, pubProfilesRes, listingsRes, reviewsRes, userRes] =
+      const [spotsRes, catRes, pubProfilesRes, listingsRes, reviewsRes, userRes] =
         await Promise.all([
           supabase.from("cod_spots").select("*").order("sort_order", { ascending: true }),
+          supabase.from("categories").select("*").order("sort_order", { ascending: true }),
           supabase.from("public_profiles").select("*"),
           supabase
             .from("listings")
@@ -205,6 +239,9 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       const spotNameById = new Map(spotRows.map((s) => [s.id, s.name]));
       if (spotRows.length > 0) {
         setCodSpots(spotRows.map(mapDbCodSpot));
+      }
+      if (catRes.data && catRes.data.length > 0) {
+        setCategoryRefs(catRes.data.map(mapDbCategoryRef));
       }
 
       const publicProfilesMap = new Map(
@@ -249,7 +286,6 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           supabase
             .from("orders")
             .select("*")
-            .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
             .order("created_at", { ascending: false }),
         ]);
 
@@ -277,7 +313,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           orderRows
             .filter(
               (o) =>
-                o.status === "Dijadwalkan" || o.status === "Sudah Diserahkan"
+                (o.buyer_id === uid || o.seller_id === uid) &&
+                (o.status === "Dijadwalkan" || o.status === "Sudah Diserahkan")
             )
             .map(async (o) => {
               const { data: waRows } = await supabase.rpc(
@@ -307,13 +344,17 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         );
 
         if (profileRes.data?.system_role === "admin") {
-          const [ktmRes, repRes] = await Promise.all([
+          const [ktmRes, repRes, usersRes] = await Promise.all([
             supabase
               .from("ktm_verifications")
               .select("*")
               .order("created_at", { ascending: false }),
             supabase
               .from("reports")
+              .select("*")
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("profiles")
               .select("*")
               .order("created_at", { ascending: false }),
           ]);
@@ -325,9 +366,13 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           if (repRes.data) {
             setReports(repRes.data.map(mapDbReport));
           }
+          if (usersRes.data) {
+            setAdminUsers(usersRes.data.map(mapDbAdminUser));
+          }
         } else {
           setKtmQueue([]);
           setReports([]);
+          setAdminUsers([]);
         }
       } else {
         setProfile(INITIAL_PROFILE);
@@ -336,6 +381,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         setOrders(INITIAL_ORDERS);
         setKtmQueue(INITIAL_KTM_QUEUE);
         setReports(INITIAL_REPORTS);
+        setAdminUsers(INITIAL_ADMIN_USERS);
+        setCategoryRefs(INITIAL_CATEGORY_REFS);
       }
 
       setAuthUserId(uid);
@@ -385,6 +432,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setOrders(INITIAL_ORDERS);
       setKtmQueue(INITIAL_KTM_QUEUE);
       setReports(INITIAL_REPORTS);
+      setAdminUsers(INITIAL_ADMIN_USERS);
+      setCategoryRefs(INITIAL_CATEGORY_REFS);
       await refreshSupabaseData();
     }
   }, [refreshSupabaseData]);
@@ -819,88 +868,114 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     return { ok: true, product: created };
   };
 
-  const updateMyListing = (
+  const updateMyListing = async (
     productId: string,
     patch: { price?: number; stock?: number; hidden?: boolean }
-  ) => {
-    let dbPayload: {
-      price?: number;
-      stock?: number;
-      always_available?: boolean;
-      status?: string;
-    } | null = null;
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const target = products.find((item) => item.id === productId);
+    if (!target) return { ok: false, error: "Listing tidak ditemukan." };
 
-    setProducts((prev) =>
-      prev.map((item) => {
-        if (item.id !== productId) return item;
-        const nextPrice =
-          typeof patch.price === "number" ? Math.max(0, patch.price) : item.price;
-        const nextStock =
-          typeof patch.stock === "number" ? Math.max(0, patch.stock) : item.stock;
-        const nextHidden =
-          typeof patch.hidden === "boolean" ? patch.hidden : item.hidden;
-        dbPayload = {
-          price: nextPrice,
-          stock: nextStock,
-          always_available: nextStock > 0 ? item.alwaysAvailable : false,
-          status: nextHidden
-            ? "Nonaktif"
-            : !item.alwaysAvailable && nextStock <= 0
-              ? "Terjual"
-              : "Aktif",
-        };
-        return {
-          ...item,
-          price: nextPrice,
-          priceLabel: formatRupiah(nextPrice),
-          stock: nextStock,
-          alwaysAvailable: nextStock > 0 ? item.alwaysAvailable : false,
-          hidden: nextHidden,
-        };
-      })
-    );
-
-    if (authUserId && dbPayload && isSupabaseConfigured()) {
-      const supabase = createClient();
-      void supabase
-        .from("listings")
-        .update(dbPayload)
-        .eq("slug", productId)
-        .eq("seller_id", authUserId);
-    }
-  };
-
-  const deleteMyListing = (productId: string) => {
-    setProducts((prev) => prev.filter((item) => item.id !== productId));
-    setMyListingIds((prev) => prev.filter((id) => id !== productId));
+    const nextPrice =
+      typeof patch.price === "number" ? Math.max(0, patch.price) : target.price;
+    const nextStock =
+      typeof patch.stock === "number" ? Math.max(0, patch.stock) : target.stock;
+    const nextHidden =
+      typeof patch.hidden === "boolean" ? patch.hidden : target.hidden;
+    const nextAlways = nextStock > 0 ? target.alwaysAvailable : false;
 
     if (authUserId && isSupabaseConfigured()) {
       const supabase = createClient();
-      void supabase
+      const { error } = await supabase
+        .from("listings")
+        .update({
+          price: nextPrice,
+          stock: nextStock,
+          always_available: Boolean(nextAlways),
+          status: nextHidden
+            ? "Nonaktif"
+            : !target.alwaysAvailable && nextStock <= 0
+              ? "Terjual"
+              : "Aktif",
+        })
+        .eq("slug", productId)
+        .eq("seller_id", authUserId);
+
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
+    setProducts((prev) =>
+      prev.map((item) =>
+        item.id === productId
+          ? {
+              ...item,
+              price: nextPrice,
+              priceLabel: formatRupiah(nextPrice),
+              stock: nextStock,
+              alwaysAvailable: nextAlways,
+              hidden: nextHidden,
+            }
+          : item
+      )
+    );
+    return { ok: true };
+  };
+
+  const deleteMyListing = async (
+    productId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const target = products.find((item) => item.id === productId);
+
+    if (authUserId && isSupabaseConfigured()) {
+      const supabase = createClient();
+      const { error } = await supabase
         .from("listings")
         .delete()
         .eq("slug", productId)
         .eq("seller_id", authUserId);
+
+      if (error) {
+        return {
+          ok: false,
+          error: error.message.toLowerCase().includes("foreign key")
+            ? "Listing sudah memiliki riwayat pesanan COD sehingga tidak dapat dihapus permanen. Gunakan Nonaktifkan."
+            : error.message,
+        };
+      }
+
+      const objectPaths = (target?.uploadedImages ?? [])
+        .map((url) => {
+          const marker = "/listing-photos/";
+          const idx = url.indexOf(marker);
+          return idx >= 0 ? url.slice(idx + marker.length).split("?")[0] : "";
+        })
+        .filter(Boolean);
+      if (objectPaths.length > 0) {
+        await supabase.storage.from("listing-photos").remove(objectPaths);
+      }
+
+      await refreshSupabaseData();
+      return { ok: true };
     }
+
+    setProducts((prev) => prev.filter((item) => item.id !== productId));
+    setMyListingIds((prev) => prev.filter((id) => id !== productId));
+    return { ok: true };
   };
 
-  const toggleListingStockZero = (productId: string) => {
-    let nextStockValue = 0;
-    setProducts((prev) =>
-      prev.map((item) => {
-        if (item.id !== productId) return item;
-        nextStockValue = item.stock > 0 ? 0 : 1;
-        return {
-          ...item,
-          alwaysAvailable: false,
-          stock: nextStockValue,
-        };
-      })
-    );
+  const toggleListingStockZero = async (
+    productId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const target = products.find((item) => item.id === productId);
+    if (!target) return { ok: false, error: "Listing tidak ditemukan." };
+    const nextStockValue = target.stock > 0 ? 0 : 1;
 
     if (authUserId && isSupabaseConfigured()) {
       const supabase = createClient();
-      void supabase
+      const { error } = await supabase
         .from("listings")
         .update({
           always_available: false,
@@ -909,7 +984,26 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         })
         .eq("slug", productId)
         .eq("seller_id", authUserId);
+
+      if (error) {
+        return { ok: false, error: error.message };
+      }
+      await refreshSupabaseData();
+      return { ok: true };
     }
+
+    setProducts((prev) =>
+      prev.map((item) =>
+        item.id === productId
+          ? {
+              ...item,
+              alwaysAvailable: false,
+              stock: nextStockValue,
+            }
+          : item
+      )
+    );
+    return { ok: true };
   };
 
   const hideListingByAdmin = (productId: string) => {
@@ -1385,6 +1479,116 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
+  const addCodSpot = async (input: {
+    name: string;
+    location: string;
+    hours: string;
+  }): Promise<{ ok: boolean; error?: string }> => {
+    if (authUserId && isSupabaseConfigured()) {
+      const res = await addCodSpotAction(input);
+      if (!res.ok) return res;
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
+    const cleanName = input.name.trim();
+    const cleanLoc = input.location.trim();
+    const cleanHours = input.hours.trim();
+    if (cleanName.length < 3 || cleanLoc.length < 3 || cleanHours.length < 3) {
+      return {
+        ok: false,
+        error: "Isi nama spot, lokasi detail, dan jam layanan minimal 3 karakter.",
+      };
+    }
+    const id = `spot-${Date.now().toString(36)}`;
+    setCodSpots((prev) => [
+      ...prev,
+      { id, name: cleanName, location: cleanLoc, hours: cleanHours, active: true },
+    ]);
+    return { ok: true };
+  };
+
+  const toggleCategoryActive = async (
+    slug: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const target = categoryRefs.find((c) => c.slug === slug);
+    if (!target) return { ok: false, error: "Kategori tidak ditemukan." };
+
+    if (authUserId && isSupabaseConfigured()) {
+      const res = await toggleCategoryActiveAction(slug, !target.active);
+      if (!res.ok) return res;
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
+    setCategoryRefs((prev) =>
+      prev.map((c) => (c.slug === slug ? { ...c, active: !c.active } : c))
+    );
+    return { ok: true };
+  };
+
+  const toggleUserUmkm = async (
+    userId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const target = adminUsers.find((u) => u.id === userId);
+    if (!target) return { ok: false, error: "Akun pengguna tidak ditemukan." };
+
+    if (authUserId && isSupabaseConfigured()) {
+      const res = await toggleUserUmkmAction(userId, !target.isUmkm);
+      if (!res.ok) return res;
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
+    setAdminUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, isUmkm: !u.isUmkm } : u))
+    );
+    return { ok: true };
+  };
+
+  const toggleUserSuspended = async (
+    userId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const target = adminUsers.find((u) => u.id === userId);
+    if (!target) return { ok: false, error: "Akun pengguna tidak ditemukan." };
+
+    if (authUserId && isSupabaseConfigured()) {
+      const res = await toggleUserSuspendedAction(userId, !target.isSuspended);
+      if (!res.ok) return res;
+      await refreshSupabaseData();
+      return { ok: true };
+    }
+
+    setAdminUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId ? { ...u, isSuspended: !u.isSuspended } : u
+      )
+    );
+    return { ok: true };
+  };
+
+  const runMaintenance = async (): Promise<{
+    ok: boolean;
+    summary?: MaintenanceSummary;
+    error?: string;
+  }> => {
+    if (authUserId && isSupabaseConfigured()) {
+      const res = await runAdminMaintenanceAction();
+      if (!res.ok) return res;
+      await refreshSupabaseData();
+      return res;
+    }
+
+    return {
+      ok: true,
+      summary: {
+        expiredOrders: 0,
+        completedOrders: 0,
+        deletedRejectedKtmFiles: 0,
+      },
+    };
+  };
+
   const value: MarketplaceContextValue = {
     authUserId,
     supabaseReady,
@@ -1428,6 +1632,13 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     resolveReport,
     codSpots,
     toggleCodSpot,
+    addCodSpot,
+    categoryRefs,
+    toggleCategoryActive,
+    adminUsers,
+    toggleUserUmkm,
+    toggleUserSuspended,
+    runMaintenance,
   };
 
   return (

@@ -1,15 +1,190 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   FACULTIES,
   formatRupiah,
   type KtmStatus,
   type UserProfile,
 } from "@/lib/preview-data";
+
+function RecoveryModeNotice() {
+  const params = useSearchParams();
+  if (params.get("mode") !== "reset-sandi") return null;
+
+  return (
+    <div
+      role="status"
+      className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-extrabold text-[#14532D]"
+    >
+      Tautan pemulihan kata sandi terverifikasi. Silakan ketik kata sandi baru Anda di
+      bawah ini.
+    </div>
+  );
+}
+
+function PasswordChangeCard({ authUserId }: { authUserId: string | null }) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdError, setPwdError] = useState("");
+  const [pwdNotice, setPwdNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdNotice("");
+    if (newPassword.length < 8) {
+      setPwdError("Kata sandi baru minimal 8 karakter.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdError("Konfirmasi kata sandi belum cocok.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (isSupabaseConfigured()) {
+        const supabase = createClient();
+        const activeUser = authUserId
+          ? { id: authUserId }
+          : (await supabase.auth.getUser()).data.user;
+
+        if (activeUser) {
+          const { error } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
+          if (error) {
+            setPwdError(error.message);
+            return;
+          }
+          setPwdError("");
+          setNewPassword("");
+          setConfirmPassword("");
+          setPwdNotice("Kata sandi akun berhasil diperbarui di Supabase Auth.");
+          return;
+        }
+      }
+
+      setPwdError("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPwdNotice(
+        "Mode pratinjau tamu: pembaruan kata sandi tervalidasi lokal. Masuk via /masuk untuk menyimpan ke Supabase Auth."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section
+      id="ubah-sandi"
+      aria-labelledby="judul-ubah-sandi"
+      className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5 sm:p-6"
+    >
+      <div>
+        <h2 id="judul-ubah-sandi" className="text-lg font-extrabold text-[#111827]">
+          Keamanan Akun &amp; Ubah Kata Sandi
+        </h2>
+        <p className="text-xs font-medium text-[#475569]">
+          Perbarui kata sandi akun Anda secara berkala atau setelah membuka tautan Lupa
+          Sandi dari email.
+        </p>
+      </div>
+
+      <Suspense fallback={null}>
+        <RecoveryModeNotice />
+      </Suspense>
+
+      <form onSubmit={handlePasswordSubmit} className="space-y-3" noValidate>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="profil-pwd-baru"
+              className="block text-xs font-extrabold text-[#111827]"
+            >
+              Kata Sandi Baru (min. 8 karakter)
+            </label>
+            <input
+              id="profil-pwd-baru"
+              type={showPwd ? "text" : "password"}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setPwdError("");
+              }}
+              placeholder="Minimal 8 karakter"
+              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="profil-pwd-konfirm"
+              className="block text-xs font-extrabold text-[#111827]"
+            >
+              Ulangi Kata Sandi Baru
+            </label>
+            <input
+              id="profil-pwd-konfirm"
+              type={showPwd ? "text" : "password"}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setPwdError("");
+              }}
+              placeholder="Ketik ulang kata sandi baru"
+              className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setShowPwd((v) => !v)}
+            className="min-h-11 rounded-xl border border-[#111827]/30 bg-[#F8FAFC] px-3 text-xs font-bold text-[#111827]"
+          >
+            {showPwd ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
+          </button>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="min-h-11 rounded-full border-2 border-[#111827] bg-[#15803D] px-5 text-xs font-bold text-white hover:bg-[#166534] disabled:opacity-60"
+          >
+            {saving ? "Menyimpan..." : "Perbarui Kata Sandi"}
+          </button>
+        </div>
+
+        {pwdError && (
+          <div
+            role="alert"
+            className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
+          >
+            Perhatian: {pwdError}
+          </div>
+        )}
+        {pwdNotice && (
+          <div
+            role="status"
+            className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-bold text-[#14532D]"
+          >
+            {pwdNotice}
+          </div>
+        )}
+      </form>
+    </section>
+  );
+}
 
 const KTM_STATUS_STEPS: KtmStatus[] = [
   "Belum Verifikasi",
@@ -353,6 +528,7 @@ export default function ProfilPage() {
   } = useMarketplace();
 
   const [listingMessage, setListingMessage] = useState("");
+  const [listingError, setListingError] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
 
@@ -475,6 +651,8 @@ export default function ProfilPage() {
         }}
       />
 
+      <PasswordChangeCard authUserId={authUserId} />
+
       {/* Panel Kelola Listing Penjual */}
       <section
         id="listing-saya"
@@ -497,6 +675,15 @@ export default function ProfilPage() {
             + Pasang Listing
           </Link>
         </div>
+
+        {listingError && (
+          <div
+            role="alert"
+            className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
+          >
+            Perhatian: {listingError}
+          </div>
+        )}
 
         {listingMessage && (
           <div
@@ -592,11 +779,19 @@ export default function ProfilPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        updateMyListing(item.id, {
+                      onClick={async () => {
+                        setListingError("");
+                        setListingMessage("");
+                        const res = await updateMyListing(item.id, {
                           price: Number(priceVal) || 0,
                           stock: Math.max(0, Number(stockVal) || 0),
                         });
+                        if (!res.ok) {
+                          setListingError(
+                            res.error ?? "Gagal memperbarui harga atau stok."
+                          );
+                          return;
+                        }
                         setListingMessage(`Perubahan harga/stok "${item.title}" disimpan.`);
                       }}
                       className="col-span-2 min-h-11 rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7] sm:col-span-1"
@@ -608,8 +803,14 @@ export default function ProfilPage() {
                   <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                     <button
                       type="button"
-                      onClick={() => {
-                        toggleListingStockZero(item.id);
+                      onClick={async () => {
+                        setListingError("");
+                        setListingMessage("");
+                        const res = await toggleListingStockZero(item.id);
+                        if (!res.ok) {
+                          setListingError(res.error ?? "Gagal mengubah status stok.");
+                          return;
+                        }
                         setListingMessage(
                           isSold
                             ? `"${item.title}" diaktifkan kembali dengan stok 1.`
@@ -622,8 +823,16 @@ export default function ProfilPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        updateMyListing(item.id, { hidden: !item.hidden });
+                      onClick={async () => {
+                        setListingError("");
+                        setListingMessage("");
+                        const res = await updateMyListing(item.id, {
+                          hidden: !item.hidden,
+                        });
+                        if (!res.ok) {
+                          setListingError(res.error ?? "Gagal mengubah visibilitas.");
+                          return;
+                        }
                         setListingMessage(
                           item.hidden
                             ? `"${item.title}" ditayangkan kembali di katalog.`
@@ -636,8 +845,14 @@ export default function ProfilPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        deleteMyListing(item.id);
+                      onClick={async () => {
+                        setListingError("");
+                        setListingMessage("");
+                        const res = await deleteMyListing(item.id);
+                        if (!res.ok) {
+                          setListingError(res.error ?? "Gagal menghapus listing.");
+                          return;
+                        }
                         setListingMessage(`Listing "${item.title}" dihapus.`);
                       }}
                       className="min-h-11 rounded-xl border border-[#991B1B]/60 bg-white px-3.5 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"

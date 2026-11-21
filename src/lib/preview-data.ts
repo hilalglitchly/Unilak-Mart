@@ -154,6 +154,26 @@ export interface UserProfile {
   deletedAt?: string;
 }
 
+export interface AdminUserItem {
+  id: string;
+  nim: string;
+  name: string;
+  prodi: string;
+  faculty: string;
+  email: string;
+  ktmStatus: KtmStatus;
+  isUmkm: boolean;
+  isSuspended: boolean;
+  systemRole: "user" | "admin";
+  deletedAt?: string;
+}
+
+export interface CategoryRefItem {
+  slug: string;
+  name: string;
+  active: boolean;
+}
+
 export const FACULTIES = [
   "Fasilkom",
   "Teknik",
@@ -704,4 +724,41 @@ export const INITIAL_PROFILE: UserProfile = {
   ktmStatus: "Terverifikasi",
   ktmPhotoName: "",
 };
+
+export const INITIAL_ADMIN_USERS: AdminUserItem[] = [
+  {
+    id: "usr-prev-1",
+    nim: "2255201045",
+    name: "Mahasiswa Unilak (Pratinjau)",
+    prodi: "Teknik Informatika",
+    faculty: "Fasilkom",
+    email: "mahasiswa.preview@unilak.ac.id",
+    ktmStatus: "Terverifikasi",
+    isUmkm: false,
+    isSuspended: false,
+    systemRole: "user",
+  },
+  {
+    id: "usr-prev-2",
+    nim: "2461201000",
+    name: "Lapak Kopi FEB (Pratinjau)",
+    prodi: "Manajemen",
+    faculty: "FEB",
+    email: "kopifeb.preview@unilak.ac.id",
+    ktmStatus: "Terverifikasi",
+    isUmkm: true,
+    isSuspended: false,
+    systemRole: "user",
+  },
+];
+
+export const INITIAL_CATEGORY_REFS: CategoryRefItem[] = [
+  { slug: "buku", name: "Buku & Modul", active: true },
+  { slug: "elektronik", name: "Elektronik", active: true },
+  { slug: "kos", name: "Perabot Kos", active: true },
+  { slug: "pakaian", name: "Pakaian", active: true },
+  { slug: "produk-umkm", name: "Produk UMKM", active: true },
+  { slug: "jasa", name: "Jasa", active: true },
+  { slug: "jajanan", name: "Jajanan Kampus", active: true },
+];
 

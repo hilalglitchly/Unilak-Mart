@@ -6,7 +6,7 @@ import { useState } from "react";
 import { getAdminKtmSignedUrlAction } from "@/app/admin/actions";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 
-type AdminTab = "semua" | "ktm" | "laporan" | "spot";
+type AdminTab = "semua" | "ktm" | "laporan" | "pengguna" | "spot";
 
 export default function AdminPage() {
   const {
@@ -21,6 +21,13 @@ export default function AdminPage() {
     resolveReport,
     codSpots,
     toggleCodSpot,
+    addCodSpot,
+    categoryRefs,
+    toggleCategoryActive,
+    adminUsers,
+    toggleUserUmkm,
+    toggleUserSuspended,
+    runMaintenance,
   } = useMarketplace();
 
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
@@ -28,6 +35,11 @@ export default function AdminPage() {
   const [adminNotice, setAdminNotice] = useState("");
   const [adminError, setAdminError] = useState("");
   const [activeTab, setActiveTab] = useState<AdminTab>("semua");
+  const [userSearch, setUserSearch] = useState("");
+  const [spotName, setSpotName] = useState("");
+  const [spotLocation, setSpotLocation] = useState("");
+  const [spotHours, setSpotHours] = useState("08.00 - 17.00 WIB");
+  const [maintLoading, setMaintLoading] = useState(false);
 
   const isNonAdminSignedUser =
     Boolean(authUserId) && profile.systemRole !== "admin";
@@ -35,6 +47,18 @@ export default function AdminPage() {
   const activeListingCount = products.filter((p) => !p.hidden).length;
   const pendingKtmCount = ktmQueue.filter((q) => q.status === "Menunggu").length;
   const openReportCount = reports.filter((r) => r.status === "Baru").length;
+  const verifiedUserCount = adminUsers.filter(
+    (u) => u.ktmStatus === "Terverifikasi" && !u.deletedAt
+  ).length;
+  const filteredUsers = adminUsers.filter((u) => {
+    const q = userSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      u.name.toLowerCase().includes(q) ||
+      u.nim.toLowerCase().includes(q) ||
+      u.faculty.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <main
@@ -86,6 +110,11 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-3.5 text-xs font-bold text-[#334155]">
             <div className="flex flex-wrap items-center gap-4">
               <span>
+                Pengguna:{" "}
+                <strong className="text-[#111827]">{adminUsers.length}</strong>{" "}
+                <span className="text-[#15803D]">({verifiedUserCount} Verif)</span>
+              </span>
+              <span>
                 Listing Aktif:{" "}
                 <strong className="text-[#15803D]">{activeListingCount}</strong>
               </span>
@@ -94,7 +123,8 @@ export default function AdminPage() {
                 <strong className="text-[#111827]">{pendingKtmCount}</strong>
               </span>
               <span>
-                Pesanan: <strong className="text-[#111827]">{orders.length}</strong>
+                Pesanan COD:{" "}
+                <strong className="text-[#111827]">{orders.length}</strong>
               </span>
               <span>
                 Laporan Baru:{" "}
@@ -102,34 +132,67 @@ export default function AdminPage() {
               </span>
             </div>
 
-            <div
-              role="tablist"
-              aria-label="Filter bagian admin"
-              className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap"
-            >
-              {(
-                [
-                  { id: "semua", label: "Semua" },
-                  { id: "ktm", label: `Antrean KTM (${pendingKtmCount})` },
-                  { id: "laporan", label: `Laporan (${openReportCount})` },
-                  { id: "spot", label: "Titik COD" },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`min-h-11 rounded-xl px-3.5 text-xs font-extrabold transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-[#15803D] text-white"
-                      : "border border-[#111827]/25 bg-white text-[#111827] hover:bg-[#F0FDF4]"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={maintLoading}
+                onClick={async () => {
+                  setAdminError("");
+                  setAdminNotice("");
+                  setMaintLoading(true);
+                  try {
+                    const res = await runMaintenance();
+                    if (!res.ok) {
+                      setAdminError(
+                        res.error ?? "Gagal menjalankan pemeliharaan otomatis."
+                      );
+                      return;
+                    }
+                    const s = res.summary;
+                    setAdminNotice(
+                      `Pemeliharaan selesai: ${s?.expiredOrders ?? 0} kedaluwarsa (24j), ${s?.completedOrders ?? 0} selesai otomatis (48j), ${s?.deletedRejectedKtmFiles ?? 0} berkas KTM ditolak (>7h) dihapus.`
+                    );
+                  } finally {
+                    setMaintLoading(false);
+                  }
+                }}
+                className="min-h-11 rounded-xl border-2 border-[#111827] bg-[#FEF9C3] px-3 text-xs font-extrabold text-[#111827] hover:bg-[#FEF08A] disabled:opacity-60"
+              >
+                {maintLoading
+                  ? "Memproses..."
+                  : "Jalankan Pemeliharaan (24j/48j/KTM)"}
+              </button>
+
+              <div
+                role="tablist"
+                aria-label="Filter bagian admin"
+                className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap"
+              >
+                {(
+                  [
+                    { id: "semua", label: "Semua" },
+                    { id: "ktm", label: `Antrean KTM (${pendingKtmCount})` },
+                    { id: "laporan", label: `Laporan (${openReportCount})` },
+                    { id: "pengguna", label: `Pengguna (${adminUsers.length})` },
+                    { id: "spot", label: "Spot COD & Kategori" },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`min-h-11 rounded-xl px-3.5 text-xs font-extrabold transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-[#15803D] text-white"
+                        : "border border-[#111827]/25 bg-white text-[#111827] hover:bg-[#F0FDF4]"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -413,13 +476,13 @@ export default function AdminPage() {
                 {(activeTab === "semua" || activeTab === "spot") && (
                   <section
                     aria-labelledby="judul-spot-admin"
-                    className="space-y-3 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-5"
+                    className="space-y-4 rounded-2xl border-2 border-[#111827] bg-[#F0FDF4] p-5"
                   >
                     <h2
                       id="judul-spot-admin"
                       className="text-lg font-extrabold text-[#111827]"
                     >
-                      Daftar Spot COD Kampus
+                      Daftar Spot COD Kampus &amp; Kategori
                     </h2>
                     <ul className="space-y-2">
                       {codSpots.map((spot) => (
@@ -432,7 +495,7 @@ export default function AdminPage() {
                               {spot.name}
                             </p>
                             <p className="text-[11px] font-medium text-[#475569]">
-                              {spot.hours}
+                              {spot.location} • {spot.hours}
                             </p>
                           </div>
                           <button
@@ -458,11 +521,229 @@ export default function AdminPage() {
                         </li>
                       ))}
                     </ul>
+
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        setAdminError("");
+                        setAdminNotice("");
+                        const res = await addCodSpot({
+                          name: spotName,
+                          location: spotLocation,
+                          hours: spotHours,
+                        });
+                        if (!res.ok) {
+                          setAdminError(res.error ?? "Gagal menambah Spot COD.");
+                          return;
+                        }
+                        setSpotName("");
+                        setSpotLocation("");
+                        setAdminNotice("Spot COD kampus baru berhasil ditambahkan.");
+                      }}
+                      className="space-y-2 rounded-xl border border-[#111827]/25 bg-white p-3.5 text-xs"
+                    >
+                      <p className="font-extrabold text-[#111827]">
+                        + Tambah Spot COD Baru (FR-19)
+                      </p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <input
+                          type="text"
+                          value={spotName}
+                          onChange={(e) => setSpotName(e.target.value)}
+                          placeholder="Nama spot (mis. Lobi Rektorat)"
+                          aria-label="Nama Spot COD baru"
+                          className="min-h-11 rounded-xl border border-[#111827] px-2.5 text-xs font-medium"
+                        />
+                        <input
+                          type="text"
+                          value={spotLocation}
+                          onChange={(e) => setSpotLocation(e.target.value)}
+                          placeholder="Detail lokasi gedung"
+                          aria-label="Detail lokasi Spot COD baru"
+                          className="min-h-11 rounded-xl border border-[#111827] px-2.5 text-xs font-medium"
+                        />
+                        <input
+                          type="text"
+                          value={spotHours}
+                          onChange={(e) => setSpotHours(e.target.value)}
+                          placeholder="Jam layanan"
+                          aria-label="Jam layanan Spot COD baru"
+                          className="min-h-11 rounded-xl border border-[#111827] px-2.5 text-xs font-medium"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="min-h-11 rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 text-xs font-extrabold text-[#111827]"
+                      >
+                        Simpan Spot COD
+                      </button>
+                    </form>
+
+                    <div className="space-y-2 pt-2">
+                      <p className="text-xs font-extrabold text-[#111827]">
+                        Status Kategori Katalog (FR-48)
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {categoryRefs.map((cat) => (
+                          <button
+                            key={cat.slug}
+                            type="button"
+                            onClick={async () => {
+                              setAdminError("");
+                              const res = await toggleCategoryActive(cat.slug);
+                              if (!res.ok) {
+                                setAdminError(
+                                  res.error ?? "Gagal mengubah status kategori."
+                                );
+                              }
+                            }}
+                            aria-pressed={cat.active}
+                            className={`min-h-11 rounded-xl border-2 border-[#111827] px-3 text-xs font-bold ${
+                              cat.active
+                                ? "bg-white text-[#14532D]"
+                                : "bg-[#E2E8F0] text-[#475569] line-through"
+                            }`}
+                          >
+                            {cat.name}: {cat.active ? "Aktif" : "Nonaktif"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </section>
                 )}
               </div>
             )}
           </div>
+
+          {(activeTab === "semua" || activeTab === "pengguna") && (
+            <section
+              aria-labelledby="judul-pengguna-admin"
+              className="space-y-4 rounded-2xl border-2 border-[#111827] bg-white p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2
+                    id="judul-pengguna-admin"
+                    className="text-lg font-extrabold text-[#111827]"
+                  >
+                    Kelola Pengguna, Penjual UMKM, &amp; Penangguhan (FR-47, FR-48)
+                  </h2>
+                  <p className="text-xs font-medium text-[#475569]">
+                    Tandai penjual UMKM resmi atau tangguhkan akun pelanggar aturan/no-show.
+                  </p>
+                </div>
+                <input
+                  type="search"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Cari nama, NIM, atau fakultas..."
+                  aria-label="Cari akun mahasiswa"
+                  className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-sm font-medium sm:w-64"
+                />
+              </div>
+
+              {filteredUsers.length === 0 ? (
+                <p className="rounded-xl border border-[#111827]/20 bg-[#F8FAFC] p-4 text-xs font-semibold text-[#475569]">
+                  Tidak ada akun yang cocok dengan filter pencarian.
+                </p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {filteredUsers.map((u) => (
+                    <li
+                      key={u.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-3.5 text-xs"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-sm font-extrabold text-[#111827]">
+                            {u.name}
+                          </span>
+                          <span className="rounded border border-[#111827]/30 bg-white px-2 py-0.5 text-[11px] font-bold">
+                            NIM {u.nim}
+                          </span>
+                          <span className="rounded border border-[#111827]/30 bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-bold text-[#14532D]">
+                            {u.ktmStatus}
+                          </span>
+                          {u.isUmkm && (
+                            <span className="rounded border border-[#111827] bg-[#FACC15] px-2 py-0.5 text-[11px] font-extrabold">
+                              UMKM
+                            </span>
+                          )}
+                          {u.isSuspended && (
+                            <span className="rounded border border-[#991B1B] bg-[#FEF2F2] px-2 py-0.5 text-[11px] font-extrabold text-[#991B1B]">
+                              Ditangguhkan
+                            </span>
+                          )}
+                          {u.systemRole === "admin" && (
+                            <span className="rounded border border-[#111827] bg-[#111827] px-2 py-0.5 text-[11px] font-extrabold text-white">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-medium text-[#475569]">
+                          {u.prodi} ({u.faculty}) • {u.email}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setAdminError("");
+                            setAdminNotice("");
+                            const res = await toggleUserUmkm(u.id);
+                            if (!res.ok) {
+                              setAdminError(
+                                res.error ?? "Gagal mengubah status UMKM akun."
+                              );
+                              return;
+                            }
+                            setAdminNotice(
+                              `Status UMKM untuk ${u.name} diperbarui.`
+                            );
+                          }}
+                          className={`min-h-11 rounded-xl border-2 border-[#111827] px-3.5 text-xs font-bold ${
+                            u.isUmkm
+                              ? "bg-[#FEF9C3] text-[#111827]"
+                              : "bg-white text-[#111827]"
+                          }`}
+                        >
+                          {u.isUmkm ? "Cabut UMKM" : "Tandai UMKM"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={u.systemRole === "admin"}
+                          onClick={async () => {
+                            setAdminError("");
+                            setAdminNotice("");
+                            const res = await toggleUserSuspended(u.id);
+                            if (!res.ok) {
+                              setAdminError(
+                                res.error ?? "Gagal mengubah status penangguhan."
+                              );
+                              return;
+                            }
+                            setAdminNotice(
+                              u.isSuspended
+                                ? `Akun ${u.name} diaktifkan kembali.`
+                                : `Akun ${u.name} ditangguhkan sementara.`
+                            );
+                          }}
+                          className={`min-h-11 rounded-xl border-2 px-3.5 text-xs font-bold disabled:opacity-40 ${
+                            u.isSuspended
+                              ? "border-[#15803D] bg-[#15803D] text-white"
+                              : "border-[#991B1B] bg-white text-[#991B1B] hover:bg-[#FEF2F2]"
+                          }`}
+                        >
+                          {u.isSuspended ? "Aktifkan Akun" : "Tangguhkan Akun"}
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </>
       )}
     </main>
