@@ -1,19 +1,28 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import { PasswordInput } from "@/components/PasswordInput";
+import { compressListingImages, type CompressedListingImage } from "@/lib/listing-images";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
+  CONDITIONS,
+  EDITABLE_LISTING_CATEGORIES,
+  EN_CATEGORY_LABELS,
+  EN_CONDITION_LABELS,
   EN_KTM_STATUS_LABELS,
   FACULTIES,
+  INITIAL_COD_SPOTS,
   formatRupiah,
   getDisplayLabel,
   type AppLocale,
+  type ItemCondition,
   type KtmStatus,
+  type ProductItem,
   type UserProfile,
 } from "@/lib/preview-data";
 
@@ -595,6 +604,7 @@ export default function ProfilPage() {
     signOutAccount,
     products,
     myListingIds,
+    codSpots,
     updateMyListing,
     deleteMyListing,
     toggleListingStockZero,
@@ -605,6 +615,9 @@ export default function ProfilPage() {
     locale,
   } = useMarketplace();
   const isEn = locale === "en";
+  const activeCodSpotNames = (codSpots.length > 0 ? codSpots : INITIAL_COD_SPOTS)
+    .filter((spot) => spot.active)
+    .map((spot) => spot.name);
 
   const [listingMessage, setListingMessage] = useState("");
   const [listingError, setListingError] = useState("");
@@ -612,6 +625,186 @@ export default function ProfilPage() {
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
 
   const myListings = products.filter((item) => myListingIds.includes(item.id));
+
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const editingProduct = editingProductId
+    ? myListings.find((item) => item.id === editingProductId) ?? null
+    : null;
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState<ProductItem["category"]>("buku");
+  const [editFaculty, setEditFaculty] = useState<string>(FACULTIES[0]);
+  const [editCondition, setEditCondition] = useState<ItemCondition>("Bekas Seperti Baru");
+  const [editIsFree, setEditIsFree] = useState(false);
+  const [editPriceText, setEditPriceText] = useState("");
+  const [editAlwaysAvailable, setEditAlwaysAvailable] = useState(false);
+  const [editStock, setEditStock] = useState(1);
+  const [editIsUmkm, setEditIsUmkm] = useState(false);
+  const [editCodSpots, setEditCodSpots] = useState<string[]>([]);
+  const [editKeepImages, setEditKeepImages] = useState<string[]>([]);
+  const [editNewImages, setEditNewImages] = useState<CompressedListingImage[]>([]);
+  const [editCompressing, setEditCompressing] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  const openEditModal = (item: ProductItem) => {
+    setEditingProductId(item.id);
+    setEditTitle(item.title);
+    setEditDescription(item.description);
+    setEditCategory(item.category);
+    setEditFaculty(item.faculty);
+    setEditCondition(item.condition);
+    setEditIsFree(item.price === 0);
+    setEditPriceText(item.price > 0 ? String(item.price) : "");
+    setEditAlwaysAvailable(Boolean(item.alwaysAvailable));
+    setEditStock(Math.max(1, item.stock));
+    setEditIsUmkm(Boolean(item.isUmkm));
+    setEditCodSpots(
+      item.codSpots.length > 0 ? item.codSpots : activeCodSpotNames.slice(0, 1)
+    );
+    setEditKeepImages(item.uploadedImages ?? []);
+    setEditNewImages([]);
+    setEditError("");
+  };
+
+  const closeEditModal = () => {
+    setEditingProductId(null);
+    setEditNewImages([]);
+    setEditError("");
+  };
+
+  const handleEditPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const totalNow = editKeepImages.length + editNewImages.length;
+    const remaining = Math.max(0, 5 - totalNow);
+    if (remaining === 0) {
+      setEditError(
+        isEn ? "Maximum 5 photos per listing." : "Maksimal 5 foto per listing."
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setEditError("");
+    setEditCompressing(true);
+    try {
+      const processed = await compressListingImages(files, remaining);
+      setEditNewImages((prev) =>
+        [...prev, ...processed].slice(0, Math.max(0, 5 - editKeepImages.length))
+      );
+    } catch {
+      setEditError(
+        isEn
+          ? "Failed to compress image in browser. Make sure the file is JPG, PNG, or WebP."
+          : "Gagal mengompres gambar di browser. Pastikan berkas berformat JPG, PNG, atau WebP."
+      );
+    } finally {
+      setEditCompressing(false);
+      e.target.value = "";
+    }
+  };
+
+  const toggleEditSpot = (spotName: string) => {
+    setEditCodSpots((prev) =>
+      prev.includes(spotName)
+        ? prev.filter((item) => item !== spotName)
+        : [...prev, spotName]
+    );
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const trimmedTitle = editTitle.trim();
+    const trimmedDescription = editDescription.trim();
+    if (trimmedTitle.length < 5) {
+      setEditError(
+        isEn
+          ? "Listing title must be at least 5 characters."
+          : "Judul listing minimal 5 karakter."
+      );
+      return;
+    }
+    if (trimmedDescription.length < 10) {
+      setEditError(
+        isEn
+          ? "Description must be at least 10 characters."
+          : "Deskripsi minimal 10 karakter."
+      );
+      return;
+    }
+
+    const numericPrice = editIsFree
+      ? 0
+      : Number(editPriceText.replace(/[^\d]/g, ""));
+    if (!editIsFree && (!Number.isFinite(numericPrice) || numericPrice <= 0)) {
+      setEditError(
+        isEn
+          ? "Enter a valid price or check Free (Rp0)."
+          : "Masukkan nominal harga yang valid atau centang Gratis Rp0."
+      );
+      return;
+    }
+    if (editCodSpots.length === 0) {
+      setEditError(
+        isEn ? "Select at least 1 campus COD spot." : "Pilih minimal 1 titik COD kampus."
+      );
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError("");
+    setListingError("");
+    setListingMessage("");
+
+    try {
+      const res = await updateMyListing(editingProduct.id, {
+        title: trimmedTitle,
+        description: trimmedDescription,
+        category: editCategory,
+        faculty: editFaculty,
+        condition: editCondition,
+        price: numericPrice,
+        alwaysAvailable: editAlwaysAvailable,
+        stock: editAlwaysAvailable ? Math.max(1, editStock) : Math.max(0, editStock),
+        isUmkm: editIsUmkm,
+        codSpots: editCodSpots,
+        keepImages: editKeepImages,
+        uploadedFiles: editNewImages.map((img) => img.file),
+        previewImages: editNewImages.map((img) => img.url),
+      });
+
+      if (!res.ok) {
+        setEditError(
+          res.error ??
+            (isEn ? "Failed to save listing updates." : "Gagal menyimpan perubahan listing.")
+        );
+        return;
+      }
+
+      setPriceDrafts((prev) => ({
+        ...prev,
+        [editingProduct.id]: String(numericPrice),
+      }));
+      setStockDrafts((prev) => ({
+        ...prev,
+        [editingProduct.id]: String(
+          editAlwaysAvailable ? Math.max(1, editStock) : Math.max(0, editStock)
+        ),
+      }));
+      setListingMessage(
+        isEn
+          ? `Updated details for "${trimmedTitle}".`
+          : `Detail listing "${trimmedTitle}" diperbarui.`
+      );
+      closeEditModal();
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -987,6 +1180,13 @@ export default function ProfilPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => openEditModal(item)}
+                      className="min-h-11 rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-3.5 text-xs font-bold text-[#111827] hover:bg-[#DCFCE7]"
+                    >
+                      {isEn ? "Edit Details" : "Edit Detail"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={async () => {
                         setListingError("");
                         setListingMessage("");
@@ -1015,6 +1215,355 @@ export default function ProfilPage() {
           </ul>
         )}
       </section>
+
+      {/* Dialog Edit Detail Listing */}
+      <ModalDialog
+        open={Boolean(editingProduct)}
+        onClose={closeEditModal}
+        titleId="judul-edit-listing"
+      >
+        {editingProduct && (
+          <form onSubmit={(e) => void handleSaveEdit(e)} className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="judul-edit-listing" className="text-lg font-extrabold text-[#111827]">
+                  {isEn ? "Edit Listing Details" : "Edit Detail Listing"}
+                </h2>
+                <p className="text-xs font-medium text-[#475569]">
+                  {isEn
+                    ? "Update title, price, stock, photos, category, or COD spots."
+                    : "Perbarui judul, harga, stok, foto, kategori, atau titik COD."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditModal}
+                aria-label={isEn ? "Close edit listing dialog" : "Tutup dialog edit listing"}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] font-extrabold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-judul-listing"
+                className="block text-xs font-extrabold text-[#111827]"
+              >
+                {isEn ? "Item / Service Title" : "Judul Barang / Jasa"}{" "}
+                <span aria-hidden="true">*</span>
+              </label>
+              <input
+                id="edit-judul-listing"
+                type="text"
+                required
+                value={editTitle}
+                onChange={(e) => {
+                  setEditTitle(e.target.value);
+                  setEditError("");
+                }}
+                className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-medium text-[#111827] sm:text-sm"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label
+                  htmlFor="edit-kategori-listing"
+                  className="block text-xs font-extrabold text-[#111827]"
+                >
+                  {isEn ? "Category" : "Kategori"}
+                </label>
+                <select
+                  id="edit-kategori-listing"
+                  value={editCategory}
+                  onChange={(e) =>
+                    setEditCategory(e.target.value as ProductItem["category"])
+                  }
+                  className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
+                >
+                  {EDITABLE_LISTING_CATEGORIES.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {isEn ? EN_CATEGORY_LABELS[cat.id] : cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-kondisi-listing"
+                  className="block text-xs font-extrabold text-[#111827]"
+                >
+                  {isEn ? "Condition" : "Kondisi"}
+                </label>
+                <select
+                  id="edit-kondisi-listing"
+                  value={editCondition}
+                  onChange={(e) => setEditCondition(e.target.value as ItemCondition)}
+                  className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
+                >
+                  {CONDITIONS.map((cond) => (
+                    <option key={cond} value={cond}>
+                      {isEn ? EN_CONDITION_LABELS[cond] : cond}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-fakultas-listing"
+                  className="block text-xs font-extrabold text-[#111827]"
+                >
+                  {isEn ? "Faculty" : "Fakultas"}
+                </label>
+                <select
+                  id="edit-fakultas-listing"
+                  value={editFaculty}
+                  onChange={(e) => setEditFaculty(e.target.value)}
+                  className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
+                >
+                  {FACULTIES.map((fac) => (
+                    <option key={fac} value={fac}>
+                      {fac}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2 rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-3">
+                <label
+                  htmlFor="edit-harga-listing"
+                  className="block text-xs font-extrabold text-[#111827]"
+                >
+                  {isEn ? "Price (Rp)" : "Harga (Rp)"}
+                </label>
+                <input
+                  id="edit-harga-listing"
+                  type="number"
+                  min={0}
+                  step={500}
+                  disabled={editIsFree}
+                  value={editIsFree ? "0" : editPriceText}
+                  onChange={(e) => {
+                    setEditPriceText(e.target.value);
+                    setEditError("");
+                  }}
+                  className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] disabled:opacity-50 sm:text-sm"
+                />
+                <label className="flex min-h-10 items-center gap-2 text-xs font-bold text-[#111827]">
+                  <input
+                    type="checkbox"
+                    checked={editIsFree}
+                    onChange={(e) => setEditIsFree(e.target.checked)}
+                    className="h-5 w-5 shrink-0 accent-[#15803D]"
+                  />
+                  <span>{isEn ? "Free Campus Share (Rp0)" : "Gratis / Berbagi Rp0"}</span>
+                </label>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-3">
+                <label
+                  htmlFor="edit-stok-listing"
+                  className="block text-xs font-extrabold text-[#111827]"
+                >
+                  {isEn ? "Stock" : "Stok"}
+                </label>
+                <input
+                  id="edit-stok-listing"
+                  type="number"
+                  min={0}
+                  max={999}
+                  disabled={editAlwaysAvailable}
+                  value={editAlwaysAvailable ? 1 : editStock}
+                  onChange={(e) => setEditStock(Math.max(0, Number(e.target.value) || 0))}
+                  className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] disabled:opacity-50 sm:text-sm"
+                />
+                <label className="flex min-h-10 items-center gap-2 text-xs font-bold text-[#111827]">
+                  <input
+                    type="checkbox"
+                    checked={editAlwaysAvailable}
+                    onChange={(e) => setEditAlwaysAvailable(e.target.checked)}
+                    className="h-5 w-5 shrink-0 accent-[#15803D]"
+                  />
+                  <span>
+                    {isEn ? "Always available (Pre-order / Service)" : "Selalu tersedia (Pre-order / Jasa)"}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <label className="flex min-h-11 items-center gap-2.5 rounded-xl border border-[#111827]/25 bg-[#FEF9C3] px-3 py-2 text-xs font-bold text-[#111827]">
+              <input
+                type="checkbox"
+                checked={editIsUmkm}
+                onChange={(e) => setEditIsUmkm(e.target.checked)}
+                className="h-5 w-5 shrink-0 accent-[#15803D]"
+              />
+              <span>
+                {isEn
+                  ? "Show in Free Student UMKM Showcase strip"
+                  : "Tampilkan di Etalase UMKM Mahasiswa Gratis"}
+              </span>
+            </label>
+
+            <div>
+              <label
+                htmlFor="edit-deskripsi-listing"
+                className="block text-xs font-extrabold text-[#111827]"
+              >
+                {isEn ? "Description" : "Deskripsi"}{" "}
+                <span aria-hidden="true">*</span>
+              </label>
+              <textarea
+                id="edit-deskripsi-listing"
+                rows={3}
+                required
+                value={editDescription}
+                onChange={(e) => {
+                  setEditDescription(e.target.value);
+                  setEditError("");
+                }}
+                className="mt-1 w-full rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-base font-medium text-[#111827] sm:text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-foto-listing"
+                className="block text-xs font-extrabold text-[#111827]"
+              >
+                {isEn ? "Listing Photos (Max 5)" : "Foto Listing (Maks. 5 Foto)"}
+              </label>
+              <input
+                id="edit-foto-listing"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => void handleEditPhotoChange(e)}
+                className="block min-h-11 w-full rounded-xl border-2 border-[#111827] bg-[#F8FAFC] p-2 text-xs font-semibold text-[#111827]"
+              />
+              {editCompressing && (
+                <p role="status" className="text-xs font-bold text-[#15803D]">
+                  {isEn ? "Compressing images..." : "Mengompres gambar..."}
+                </p>
+              )}
+              {(editKeepImages.length > 0 || editNewImages.length > 0) && (
+                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {editKeepImages.map((url, idx) => (
+                    <li
+                      key={`${url}-${idx}`}
+                      className="rounded-xl border border-[#111827] bg-[#F8FAFC] p-2"
+                    >
+                      <Image
+                        unoptimized
+                        src={url}
+                        alt={isEn ? `Saved photo ${idx + 1}` : `Foto tersimpan ${idx + 1}`}
+                        width={120}
+                        height={88}
+                        className="h-20 w-full rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditKeepImages((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="mt-1 min-h-9 w-full rounded-lg border border-[#111827]/40 bg-white text-[11px] font-bold text-[#991B1B]"
+                      >
+                        {isEn ? "Remove Photo" : "Hapus Foto"}
+                      </button>
+                    </li>
+                  ))}
+                  {editNewImages.map((img, idx) => (
+                    <li
+                      key={`${img.name}-${idx}`}
+                      className="rounded-xl border-2 border-[#15803D] bg-[#F0FDF4] p-2"
+                    >
+                      <Image
+                        unoptimized
+                        src={img.url}
+                        alt={isEn ? `New photo ${idx + 1}` : `Foto baru ${idx + 1}`}
+                        width={120}
+                        height={88}
+                        className="h-20 w-full rounded-lg object-cover"
+                      />
+                      <p className="mt-0.5 text-[10px] font-bold text-[#14532D]">
+                        {img.compressedKb} KB
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditNewImages((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="mt-1 min-h-9 w-full rounded-lg border border-[#111827]/40 bg-white text-[11px] font-bold text-[#991B1B]"
+                      >
+                        {isEn ? "Remove New" : "Batalkan"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <fieldset className="space-y-2 rounded-xl border border-[#111827]/30 bg-[#F8FAFC] p-3">
+              <legend className="px-1 text-xs font-extrabold text-[#111827]">
+                {isEn ? "Campus COD Spots" : "Titik COD Kampus"}
+              </legend>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {activeCodSpotNames.map((spotName) => (
+                  <label
+                    key={spotName}
+                    className="flex min-h-10 items-center gap-2 rounded-lg border border-[#111827]/25 bg-white px-2.5 text-xs font-bold text-[#111827]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editCodSpots.includes(spotName)}
+                      onChange={() => toggleEditSpot(spotName)}
+                      className="h-4 w-4 shrink-0 accent-[#15803D]"
+                    />
+                    <span>{spotName}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {editError && (
+              <div
+                role="alert"
+                className="rounded-xl border-2 border-[#111827] bg-[#FEF2F2] p-3 text-xs font-bold text-[#991B1B]"
+              >
+                {editError}
+              </div>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={closeEditModal}
+                className="min-h-11 rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold text-[#111827]"
+              >
+                {isEn ? "Cancel" : "Batal"}
+              </button>
+              <button
+                type="submit"
+                disabled={editSaving || editCompressing}
+                className="min-h-11 rounded-full border-2 border-[#111827] bg-[#15803D] px-5 text-xs font-extrabold text-white hover:bg-[#166534] disabled:opacity-60"
+              >
+                {editSaving
+                  ? isEn
+                    ? "Saving..."
+                    : "Menyimpan..."
+                  : isEn
+                    ? "Save Listing Changes"
+                    : "Simpan Perubahan"}
+              </button>
+            </div>
+          </form>
+        )}
+      </ModalDialog>
 
       {/* Dialog Hapus Akun Mandiri */}
       <ModalDialog

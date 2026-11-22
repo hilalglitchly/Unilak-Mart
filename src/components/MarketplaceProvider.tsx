@@ -75,6 +75,93 @@ export interface NewListingInput {
   uploadedFiles?: File[];
 }
 
+export interface UpdateListingPatch {
+  title?: string;
+  description?: string;
+  price?: number;
+  condition?: ItemCondition;
+  stock?: number;
+  alwaysAvailable?: boolean;
+  hidden?: boolean;
+  category?: ProductItem["category"];
+  faculty?: string;
+  isUmkm?: boolean;
+  codSpots?: string[];
+  keepImages?: string[];
+  uploadedFiles?: File[];
+  previewImages?: string[];
+}
+
+function getListingVisualMeta(input: {
+  isUmkm: boolean;
+  price: number;
+  condition: ItemCondition;
+}) {
+  const badge = input.isUmkm
+    ? "UMKM"
+    : input.price === 0
+      ? "Gratis Rp0"
+      : input.condition;
+  const badgeTone: "green" | "yellow" = input.isUmkm || input.price === 0 ? "yellow" : "green";
+  return {
+    badge,
+    badgeTone,
+    cardBg: input.isUmkm ? "bg-[#FEF08A]" : "bg-[#DCFCE7]",
+    cardBgHex: input.isUmkm ? "#FEF9C3" : "#DCFCE7",
+    illustration: (input.isUmkm ? "umkm-coffee" : "bag") as ProductItem["illustration"],
+  };
+}
+
+function extractListingPhotoPaths(urls: string[]): string[] {
+  const marker = "/listing-photos/";
+  return urls
+    .map((url) => {
+      const idx = url.indexOf(marker);
+      return idx >= 0 ? url.slice(idx + marker.length).split("?")[0] : "";
+    })
+    .filter(Boolean);
+}
+
+async function uploadListingPhotos(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  slugPrefix: string,
+  files: File[],
+  maxFiles: number
+): Promise<{ urls: string[]; error?: string }> {
+  const urls: string[] = [];
+  const batch = files.slice(0, Math.max(0, maxFiles));
+  const nonce = Date.now();
+
+  for (let i = 0; i < batch.length; i++) {
+    const file = batch[i];
+    const ext = (file.name.split(".").pop() || "jpg")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const objectPath = `${userId}/${slugPrefix}-${nonce}-${i + 1}.${ext || "jpg"}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("listing-photos")
+      .upload(objectPath, file, {
+        contentType: file.type || "image/jpeg",
+        upsert: false,
+      });
+    if (uploadErr) {
+      return {
+        urls: [],
+        error: `Gagal mengunggah foto listing ke-${i + 1}: ${uploadErr.message}`,
+      };
+    }
+
+    const { data: pubUrl } = supabase.storage
+      .from("listing-photos")
+      .getPublicUrl(objectPath);
+    urls.push(pubUrl.publicUrl);
+  }
+
+  return { urls };
+}
+
 export interface CreateOrderInput {
   product: ProductItem;
   quantity: number;
@@ -119,7 +206,7 @@ interface MarketplaceContextValue {
   myListingIds: string[];
   updateMyListing: (
     productId: string,
-    patch: { price?: number; stock?: number; hidden?: boolean }
+    patch: UpdateListingPatch
   ) => Promise<{ ok: boolean; error?: string }>;
   deleteMyListing: (productId: string) => Promise<{ ok: boolean; error?: string }>;
   toggleListingStockZero: (
@@ -533,7 +620,10 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        void supabase.realtime.setAuth(session.access_token);
+      }
       if (active) {
         void refreshSupabaseData();
       }
@@ -544,6 +634,72 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [refreshSupabaseData]);
+
+  useEffect(() => {
+    if (!authUserId || !isSupabaseConfigured()) return;
+
+    const supabase = createClient();
+    let cancelled = false;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      // Gabungkan event beruntun (mis. transaksi order + stok + notifikasi) menjadi 1 refresh
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        void refreshSupabaseData();
+      }, 300);
+    };
+
+    const startRealtime = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled) return;
+      // Pastikan soket Realtime memakai JWT pengguna agar event tabel ber-RLS lolos filter auth.uid()
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      } else {
+        await supabase.realtime.setAuth();
+      }
+      if (cancelled) return;
+
+      activeChannel = supabase
+        .channel(`unilakmart-realtime-${authUserId}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications" },
+          scheduleRefresh
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          scheduleRefresh
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "listings" },
+          scheduleRefresh
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "ktm_verifications" },
+          scheduleRefresh
+        )
+        .subscribe();
+    };
+
+    void startRealtime();
+
+    return () => {
+      cancelled = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (activeChannel) {
+        void supabase.removeChannel(activeChannel);
+      }
+    };
+  }, [authUserId, refreshSupabaseData]);
 
   const signOutAccount = useCallback(async () => {
     try {
@@ -854,45 +1010,27 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
 
     if (authUserId && isSupabaseConfigured()) {
       const supabase = createClient();
-      const uploadedUrls: string[] = [];
-
-      const filesToUpload = (input.uploadedFiles ?? []).slice(0, 5);
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const file = filesToUpload[i];
-        const ext = (file.name.split(".").pop() || "jpg")
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "");
-        const objectPath = `${authUserId}/${slug}-${i + 1}.${ext || "jpg"}`;
-
-        const { error: uploadErr } = await supabase.storage
-          .from("listing-photos")
-          .upload(objectPath, file, {
-            contentType: file.type || "image/jpeg",
-            upsert: false,
-          });
-        if (uploadErr) {
-          return {
-            ok: false,
-            error: `Gagal mengunggah foto listing ke-${i + 1}: ${uploadErr.message}`,
-          };
-        }
-        const { data: pubUrl } = supabase.storage
-          .from("listing-photos")
-          .getPublicUrl(objectPath);
-        uploadedUrls.push(pubUrl.publicUrl);
+      const uploadRes = await uploadListingPhotos(
+        supabase,
+        authUserId,
+        slug,
+        input.uploadedFiles ?? [],
+        5
+      );
+      if (uploadRes.error) {
+        return { ok: false, error: uploadRes.error };
       }
+      const uploadedUrls = uploadRes.urls;
 
       const spotIds = codSpots
         .filter((s) => input.codSpots.includes(s.name))
         .map((s) => s.id);
 
-      const badgeText = input.isUmkm
-        ? "UMKM"
-        : input.price === 0
-          ? "Gratis Rp0"
-          : input.condition;
-      const badgeTone = input.isUmkm || input.price === 0 ? "yellow" : "green";
-      const cardBgHex = input.isUmkm ? "#FEF9C3" : "#DCFCE7";
+      const visual = getListingVisualMeta({
+        isUmkm: input.isUmkm,
+        price: input.price,
+        condition: input.condition,
+      });
 
       const { data: inserted, error: insertErr } = await supabase
         .from("listings")
@@ -910,10 +1048,10 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           is_umkm: input.isUmkm,
           cod_spot_ids: spotIds,
           photos: uploadedUrls,
-          illustration: input.isUmkm ? "umkm-coffee" : "bag",
-          badge: badgeText,
-          badge_tone: badgeTone,
-          card_bg: cardBgHex,
+          illustration: visual.illustration,
+          badge: visual.badge,
+          badge_tone: visual.badgeTone,
+          card_bg: visual.cardBgHex,
           status: "Aktif",
         })
         .select("*")
@@ -945,12 +1083,12 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
           sellerProdi: profile.prodi,
           sellerVerified: profile.ktmStatus === "Terverifikasi",
           sellerWa: "",
-          badge: badgeText,
-          badgeTone,
-          cardBg: input.isUmkm ? "bg-[#FEF08A]" : "bg-[#DCFCE7]",
+          badge: visual.badge,
+          badgeTone: visual.badgeTone,
+          cardBg: visual.cardBg,
           category: input.category,
           isUmkm: input.isUmkm,
-          illustration: input.isUmkm ? "umkm-coffee" : "bag",
+          illustration: visual.illustration,
           uploadedImages: uploadedUrls,
           createdAt: inserted.created_at,
         },
@@ -998,32 +1136,99 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
 
   const updateMyListing = async (
     productId: string,
-    patch: { price?: number; stock?: number; hidden?: boolean }
+    patch: UpdateListingPatch
   ): Promise<{ ok: boolean; error?: string }> => {
     const target = products.find((item) => item.id === productId);
     if (!target) return { ok: false, error: "Listing tidak ditemukan." };
 
+    const nextTitle =
+      patch.title !== undefined ? patch.title.trim() || target.title : target.title;
+    const nextDescription =
+      patch.description !== undefined
+        ? patch.description.trim() || target.description
+        : target.description;
     const nextPrice =
       typeof patch.price === "number" ? Math.max(0, patch.price) : target.price;
-    const nextStock =
-      typeof patch.stock === "number" ? Math.max(0, patch.stock) : target.stock;
+    const nextCondition = patch.condition ?? target.condition;
+    const nextCategory = patch.category ?? target.category;
+    const nextFaculty = patch.faculty ?? target.faculty;
+    const nextIsUmkm =
+      typeof patch.isUmkm === "boolean" ? patch.isUmkm : Boolean(target.isUmkm);
+    const nextCodSpots =
+      patch.codSpots && patch.codSpots.length > 0 ? patch.codSpots : target.codSpots;
     const nextHidden =
       typeof patch.hidden === "boolean" ? patch.hidden : target.hidden;
-    const nextAlways = nextStock > 0 ? target.alwaysAvailable : false;
+    const nextAlways =
+      patch.alwaysAvailable !== undefined
+        ? patch.alwaysAvailable
+        : typeof patch.stock === "number" && patch.stock <= 0
+          ? false
+          : target.alwaysAvailable;
+    const nextStock =
+      typeof patch.stock === "number"
+        ? Math.max(0, patch.stock)
+        : nextAlways
+          ? Math.max(1, target.stock)
+          : target.stock;
+
+    const existingImages = target.uploadedImages ?? [];
+    const retainedImages =
+      patch.keepImages !== undefined ? patch.keepImages : existingImages;
+    const remainingSlots = Math.max(0, 5 - retainedImages.length);
+    const visual = getListingVisualMeta({
+      isUmkm: nextIsUmkm,
+      price: nextPrice,
+      condition: nextCondition,
+    });
 
     if (authUserId && isSupabaseConfigured()) {
       const supabase = createClient();
+      const newFiles = patch.uploadedFiles ?? [];
+      let uploadedNewUrls: string[] = [];
+
+      if (newFiles.length > 0 && remainingSlots > 0) {
+        const uploadRes = await uploadListingPhotos(
+          supabase,
+          authUserId,
+          productId,
+          newFiles,
+          remainingSlots
+        );
+        if (uploadRes.error) {
+          return { ok: false, error: uploadRes.error };
+        }
+        uploadedNewUrls = uploadRes.urls;
+      }
+
+      const nextImages = [...retainedImages, ...uploadedNewUrls].slice(0, 5);
+      const spotIds = codSpots
+        .filter((s) => nextCodSpots.includes(s.name))
+        .map((s) => s.id);
+      const nextStatus = nextHidden
+        ? "Nonaktif"
+        : !nextAlways && nextStock <= 0
+          ? "Terjual"
+          : "Aktif";
+
       const { error } = await supabase
         .from("listings")
         .update({
+          title: nextTitle,
+          description: nextDescription,
           price: nextPrice,
+          condition: nextCondition,
           stock: nextStock,
           always_available: Boolean(nextAlways),
-          status: nextHidden
-            ? "Nonaktif"
-            : !target.alwaysAvailable && nextStock <= 0
-              ? "Terjual"
-              : "Aktif",
+          category: nextCategory,
+          faculty: nextFaculty,
+          is_umkm: nextIsUmkm,
+          cod_spot_ids: spotIds,
+          photos: nextImages,
+          illustration: visual.illustration,
+          badge: visual.badge,
+          badge_tone: visual.badgeTone,
+          card_bg: visual.cardBgHex,
+          status: nextStatus,
         })
         .eq("slug", productId)
         .eq("seller_id", authUserId);
@@ -1031,20 +1236,44 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       if (error) {
         return { ok: false, error: error.message };
       }
+
+      const removedUrls = existingImages.filter((url) => !nextImages.includes(url));
+      const removedPaths = extractListingPhotoPaths(removedUrls);
+      if (removedPaths.length > 0) {
+        await supabase.storage.from("listing-photos").remove(removedPaths);
+      }
+
       await refreshSupabaseData();
       return { ok: true };
     }
+
+    const nextPreviewImages = [
+      ...retainedImages,
+      ...(patch.previewImages ?? []).slice(0, remainingSlots),
+    ].slice(0, 5);
 
     setProducts((prev) =>
       prev.map((item) =>
         item.id === productId
           ? {
               ...item,
+              title: nextTitle,
+              description: nextDescription,
               price: nextPrice,
               priceLabel: formatRupiah(nextPrice),
+              condition: nextCondition,
+              category: nextCategory,
+              faculty: nextFaculty,
+              isUmkm: nextIsUmkm,
+              codSpots: nextCodSpots,
               stock: nextStock,
               alwaysAvailable: nextAlways,
               hidden: nextHidden,
+              badge: visual.badge,
+              badgeTone: visual.badgeTone,
+              cardBg: visual.cardBg,
+              illustration: visual.illustration,
+              uploadedImages: nextPreviewImages,
             }
           : item
       )
@@ -1074,13 +1303,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      const objectPaths = (target?.uploadedImages ?? [])
-        .map((url) => {
-          const marker = "/listing-photos/";
-          const idx = url.indexOf(marker);
-          return idx >= 0 ? url.slice(idx + marker.length).split("?")[0] : "";
-        })
-        .filter(Boolean);
+      const objectPaths = extractListingPhotoPaths(target?.uploadedImages ?? []);
       if (objectPaths.length > 0) {
         await supabase.storage.from("listing-photos").remove(objectPaths);
       }

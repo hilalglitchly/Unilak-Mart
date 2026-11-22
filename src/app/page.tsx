@@ -269,8 +269,10 @@ export default function Home() {
   } = useMarketplace();
   const isEn = locale === "en";
 
+  const CATALOG_PAGE_SIZE = 20;
   const [selectedCondition, setSelectedCondition] = useState<"semua" | ItemCondition>("semua");
   const [sortBy, setSortBy] = useState<SortOption>("terbaru");
+  const [visibleCount, setVisibleCount] = useState(CATALOG_PAGE_SIZE);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const stickyCatRef = useRef<HTMLDivElement>(null);
   const katalogGridRef = useRef<HTMLDivElement>(null);
@@ -397,6 +399,7 @@ export default function Home() {
   const handleCategoryChange = (catId: CategoryId) => {
     setActiveCategory(catId);
     setOnlySaved(false);
+    setVisibleCount(CATALOG_PAGE_SIZE);
     if (stickyCatRef.current && katalogGridRef.current) {
       const stickyRect = stickyCatRef.current.getBoundingClientRect();
       const gridRect = katalogGridRef.current.getBoundingClientRect();
@@ -412,6 +415,7 @@ export default function Home() {
   const selectCategoryAndScroll = (category: CategoryId) => {
     setActiveCategory(category);
     setOnlySaved(false);
+    setVisibleCount(CATALOG_PAGE_SIZE);
     document.getElementById("katalog")?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -422,6 +426,7 @@ export default function Home() {
     setSelectedCondition("semua");
     setSortBy("terbaru");
     setOnlySaved(false);
+    setVisibleCount(CATALOG_PAGE_SIZE);
   };
 
   const filteredProducts = visibleProducts
@@ -789,7 +794,10 @@ export default function Home() {
               <select
                 id="sort-mobile"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                onChange={(e) => {
+                  setSortBy(e.target.value as SortOption);
+                  setVisibleCount(CATALOG_PAGE_SIZE);
+                }}
                 className="min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827]"
               >
                 <option value="terbaru">{isEn ? "Sort: Newest" : "Urutkan: Terbaru"}</option>
@@ -828,7 +836,10 @@ export default function Home() {
               <select
                 id="filter-fakultas"
                 value={selectedFaculty}
-                onChange={(e) => setSelectedFaculty(e.target.value)}
+                onChange={(e) => {
+                  setSelectedFaculty(e.target.value);
+                  setVisibleCount(CATALOG_PAGE_SIZE);
+                }}
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               >
                 <option value="semua">{isEn ? "All Faculties" : "Semua Fakultas"}</option>
@@ -850,9 +861,10 @@ export default function Home() {
               <select
                 id="filter-kondisi"
                 value={selectedCondition}
-                onChange={(e) =>
-                  setSelectedCondition(e.target.value as "semua" | ItemCondition)
-                }
+                onChange={(e) => {
+                  setSelectedCondition(e.target.value as "semua" | ItemCondition);
+                  setVisibleCount(CATALOG_PAGE_SIZE);
+                }}
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold text-[#111827] sm:text-sm"
               >
                 <option value="semua">{isEn ? "All Conditions" : "Semua Kondisi"}</option>
@@ -874,7 +886,10 @@ export default function Home() {
               <select
                 id="filter-urutkan"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                onChange={(e) => {
+                  setSortBy(e.target.value as SortOption);
+                  setVisibleCount(CATALOG_PAGE_SIZE);
+                }}
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-sm font-semibold text-[#111827]"
               >
                 <option value="terbaru">{isEn ? "Newest" : "Terbaru"}</option>
@@ -886,7 +901,10 @@ export default function Home() {
             <div>
               <button
                 type="button"
-                onClick={() => setOnlySaved((prev) => !prev)}
+                onClick={() => {
+                  setOnlySaved((prev) => !prev);
+                  setVisibleCount(CATALOG_PAGE_SIZE);
+                }}
                 aria-pressed={onlySaved}
                 className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-[#111827] px-3 py-2 text-xs font-bold transition-colors ${
                   onlySaved
@@ -931,20 +949,41 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div
-            ref={katalogGridRef}
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5"
-          >
-            {filteredProducts.map((item) => (
-              <ListingCard
-                key={item.id}
-                item={item}
-                locale={locale}
-                isSaved={savedIds.includes(item.id)}
-                onToggleSave={toggleSave}
-                onOrderCod={openCodModal}
-              />
-            ))}
+          <div className="space-y-5">
+            <div
+              ref={katalogGridRef}
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5"
+            >
+              {filteredProducts.slice(0, visibleCount).map((item) => (
+                <ListingCard
+                  key={item.id}
+                  item={item}
+                  locale={locale}
+                  isSaved={savedIds.includes(item.id)}
+                  onToggleSave={toggleSave}
+                  onOrderCod={openCodModal}
+                />
+              ))}
+            </div>
+
+            {filteredProducts.length > visibleCount && (
+              <div className="flex flex-col items-center gap-2 pt-1">
+                <p className="text-xs font-semibold text-[#475569]">
+                  {isEn
+                    ? `Showing ${Math.min(visibleCount, filteredProducts.length)} of ${filteredProducts.length} listings`
+                    : `Menampilkan ${Math.min(visibleCount, filteredProducts.length)} dari ${filteredProducts.length} listing`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + CATALOG_PAGE_SIZE)}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border-2 border-[#111827] bg-white px-6 py-2 text-sm font-extrabold text-[#111827] hover:bg-[#DCFCE7] active:translate-x-[1px] active:translate-y-[1px]"
+                >
+                  {isEn
+                    ? `Load More (+${Math.min(CATALOG_PAGE_SIZE, filteredProducts.length - visibleCount)})`
+                    : `Muat Lebih Banyak (+${Math.min(CATALOG_PAGE_SIZE, filteredProducts.length - visibleCount)})`}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

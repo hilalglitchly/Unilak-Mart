@@ -1,12 +1,13 @@
 "use client";
 
-import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useMarketplace } from "@/components/MarketplaceProvider";
+import { compressListingImages, type CompressedListingImage } from "@/lib/listing-images";
 import {
   CONDITIONS,
+  EDITABLE_LISTING_CATEGORIES,
   EN_CATEGORY_LABELS,
   EN_CONDITION_LABELS,
   EN_KTM_STATUS_LABELS,
@@ -15,16 +16,6 @@ import {
   type ItemCondition,
   type ProductItem,
 } from "@/lib/preview-data";
-
-const LISTING_CATEGORIES: { id: ProductItem["category"]; label: string }[] = [
-  { id: "buku", label: "Buku & Modul" },
-  { id: "elektronik", label: "Elektronik" },
-  { id: "kos", label: "Perabot Kos" },
-  { id: "pakaian", label: "Pakaian" },
-  { id: "produk-umkm", label: "Produk UMKM" },
-  { id: "jasa", label: "Jasa (Desain, Pemrograman, Les)" },
-  { id: "jajanan", label: "Jajanan Kampus" },
-];
 
 export default function JualPage() {
   const { addListing, codSpots, profile, locale } = useMarketplace();
@@ -45,9 +36,7 @@ export default function JualPage() {
     activeSpots.map((s) => s.name)
   );
 
-  const [compressedImages, setCompressedImages] = useState<
-    { url: string; file: File; originalKb: number; compressedKb: number; name: string }[]
-  >([]);
+  const [compressedImages, setCompressedImages] = useState<CompressedListingImage[]>([]);
   const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -68,31 +57,7 @@ export default function JualPage() {
     setCompressing(true);
 
     try {
-      const batch = files.slice(0, remaining);
-      const processed: {
-        url: string;
-        file: File;
-        originalKb: number;
-        compressedKb: number;
-        name: string;
-      }[] = [];
-
-      for (const file of batch) {
-        const compressed = await imageCompression(file, {
-          maxSizeMB: 0.25,
-          maxWidthOrHeight: 1200,
-          useWebWorker: true,
-        });
-        const dataUrl = await imageCompression.getDataUrlFromFile(compressed);
-        processed.push({
-          url: dataUrl,
-          file: compressed,
-          originalKb: Math.max(1, Math.round(file.size / 1024)),
-          compressedKb: Math.max(1, Math.round(compressed.size / 1024)),
-          name: file.name,
-        });
-      }
-
+      const processed = await compressListingImages(files, remaining);
       setCompressedImages((prev) => [...prev, ...processed].slice(0, 5));
     } catch {
       setPhotoError(
@@ -380,7 +345,7 @@ export default function JualPage() {
                 onChange={(e) => setCategory(e.target.value as ProductItem["category"])}
                 className="mt-1 min-h-11 w-full rounded-xl border-2 border-[#111827] bg-white px-3 text-base font-semibold sm:text-sm"
               >
-                {LISTING_CATEGORIES.map((c) => (
+                {EDITABLE_LISTING_CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
                     {isEn ? EN_CATEGORY_LABELS[c.id] : c.label}
                   </option>

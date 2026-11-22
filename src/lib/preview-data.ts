@@ -250,6 +250,19 @@ export const CATEGORIES: { id: CategoryId; label: string }[] = [
   { id: "gratis", label: "Rp0 Gratis" },
 ];
 
+export const EDITABLE_LISTING_CATEGORIES: {
+  id: ProductItem["category"];
+  label: string;
+}[] = [
+  { id: "buku", label: "Buku & Modul" },
+  { id: "elektronik", label: "Elektronik" },
+  { id: "kos", label: "Perabot Kos" },
+  { id: "pakaian", label: "Pakaian" },
+  { id: "produk-umkm", label: "Produk UMKM" },
+  { id: "jasa", label: "Jasa (Desain, Pemrograman, Les)" },
+  { id: "jajanan", label: "Jajanan Kampus" },
+];
+
 export const INITIAL_COD_SPOTS: CodSpotItem[] = [
   {
     id: "perpus-pusat",
