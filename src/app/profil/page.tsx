@@ -351,8 +351,8 @@ function ProfilIdentityForm({
             ? "KTM photo uploaded to the private bucket and verification request saved to Supabase."
             : "Foto KTM berhasil diunggah ke bucket privat dan pengajuan verifikasi tersimpan di Supabase."
           : isEn
-            ? "KTM verification request sent to the Admin queue. Check status or approve in /admin."
-            : "Pengajuan verifikasi KTM dikirim ke antrean Admin. Cek status atau proses persetujuan di /admin."
+            ? "KTM verification request sent to the UnilakMart Administrator verification queue."
+            : "Pengajuan verifikasi KTM dikirim ke antrean verifikasi Administrator UnilakMart."
       );
     } finally {
       setSubmitting(false);
@@ -888,12 +888,14 @@ export default function ProfilPage() {
               {isEn ? "Sign In / Switch Account" : "Masuk / Ganti Akun"}
             </Link>
           )}
-          <Link
-            href="/admin"
-            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
-          >
-            {isEn ? "Admin Panel" : "Panel Admin"}
-          </Link>
+          {Boolean(authUserId) && profile.systemRole === "admin" && (
+            <Link
+              href="/admin"
+              className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-[#F8FAFC] px-4 py-2 text-xs font-bold text-[#111827] hover:bg-[#FEF9C3]"
+            >
+              {isEn ? "Admin Panel" : "Panel Admin"}
+            </Link>
+          )}
         </div>
       </div>
 

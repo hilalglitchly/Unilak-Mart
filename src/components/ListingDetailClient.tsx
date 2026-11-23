@@ -13,6 +13,8 @@ import {
 
 export function ListingDetailClient({ id }: { id: string }) {
   const {
+    authUserId,
+    profile,
     products,
     savedIds,
     toggleSave,
@@ -535,13 +537,15 @@ export function ListingDetailClient({ id }: { id: string }) {
                 ? "Report received for administrator review."
                 : "Laporan diterima untuk ditinjau administrator."}
             </p>
-            <Link
-              href="/admin"
-              onClick={() => setReportOpen(false)}
-              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
-            >
-              {isEn ? "View Report Queue in Admin" : "Lihat Antrean Laporan di Panel Admin"}
-            </Link>
+            {Boolean(authUserId) && profile.systemRole === "admin" && (
+              <Link
+                href="/admin"
+                onClick={() => setReportOpen(false)}
+                className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-xs font-bold text-white"
+              >
+                {isEn ? "View Report Queue in Admin" : "Lihat Antrean Laporan di Panel Admin"}
+              </Link>
+            )}
           </div>
         ) : (
           <form onSubmit={handleReportSubmit} className="mt-4 space-y-4">

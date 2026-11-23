@@ -227,6 +227,7 @@ function MobileBottomNav({
 export function SiteChrome({ children }: { children: ReactNode }) {
   const router = useRouter();
   const {
+    authUserId,
     searchQuery,
     setSearchQuery,
     savedIds,
@@ -244,6 +245,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     toggleTheme,
     resetThemeToSystem,
   } = useMarketplace();
+  const showAdminLink = Boolean(authUserId) && profile.systemRole === "admin";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -620,13 +622,15 @@ export function SiteChrome({ children }: { children: ReactNode }) {
               >
                 {isEn ? "Sign In / Register" : "Masuk / Daftar Akun"}
               </Link>
-              <Link
-                href="/admin"
-                onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#15803D] hover:bg-white"
-              >
-                {isEn ? "Administrator Panel" : "Panel Administrator"}
-              </Link>
+              {showAdminLink && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#15803D] hover:bg-white"
+                >
+                  {isEn ? "Administrator Panel" : "Panel Administrator"}
+                </Link>
+              )}
             </nav>
           )}
         </div>
@@ -755,17 +759,19 @@ export function SiteChrome({ children }: { children: ReactNode }) {
           <div className="flex flex-col items-start justify-between gap-2 border-t border-[#111827]/15 pt-4 text-xs font-semibold text-[#475569] sm:flex-row sm:items-center">
             <p>
               {isEn
-                ? "UnilakMart Release 1 (MVP Preview) • Universitas Lancang Kuning Pekanbaru."
-                : "UnilakMart Rilis 1 (Pratinjau MVP) • Universitas Lancang Kuning Pekanbaru."}
+                ? "UnilakMart Release 1 • Universitas Lancang Kuning Pekanbaru."
+                : "UnilakMart Rilis 1 • Universitas Lancang Kuning Pekanbaru."}
             </p>
-            <Link
-              href="/admin"
-              className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
-            >
-              {isEn
-                ? "Admin Moderation Panel (Preview)"
-                : "Panel Moderasi Admin (Pratinjau)"}
-            </Link>
+            {showAdminLink && (
+              <Link
+                href="/admin"
+                className="inline-flex min-h-11 items-center underline hover:text-[#111827]"
+              >
+                {isEn
+                  ? "Admin Moderation Panel"
+                  : "Panel Moderasi Admin"}
+              </Link>
+            )}
           </div>
         </div>
       </footer>

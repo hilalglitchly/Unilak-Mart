@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { getAdminKtmSignedUrlAction } from "@/app/admin/actions";
 import { useMarketplace } from "@/components/MarketplaceProvider";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   EN_CATEGORY_LABELS,
   EN_KTM_STATUS_LABELS,
@@ -23,6 +24,7 @@ const EN_REPORT_STATUS: Record<string, string> = {
 export default function AdminPage() {
   const {
     authUserId,
+    supabaseReady,
     profile,
     products,
     orders,
@@ -55,8 +57,10 @@ export default function AdminPage() {
   const [spotHours, setSpotHours] = useState("08.00 - 17.00 WIB");
   const [maintLoading, setMaintLoading] = useState(false);
 
-  const isNonAdminSignedUser =
-    Boolean(authUserId) && profile.systemRole !== "admin";
+  const supabaseConfigured = isSupabaseConfigured();
+  const isAdminAccount = Boolean(authUserId) && profile.systemRole === "admin";
+  const isCheckingAdmin = supabaseConfigured && !supabaseReady;
+  const isBlockedAccess = supabaseConfigured ? supabaseReady && !isAdminAccount : !isAdminAccount;
 
   const activeListingCount = products.filter((p) => !p.hidden).length;
   const pendingKtmCount = ktmQueue.filter((q) => q.status === "Menunggu").length;
@@ -103,35 +107,50 @@ export default function AdminPage() {
         </Link>
       </div>
 
-      {isNonAdminSignedUser ? (
+      {isCheckingAdmin ? (
+        <section
+          role="status"
+          className="rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-6"
+        >
+          <p className="text-sm font-bold text-[#334155]">
+            {isEn
+              ? "Verifying Administrator session..."
+              : "Memeriksa sesi Administrator..."}
+          </p>
+        </section>
+      ) : isBlockedAccess ? (
         <section
           role="alert"
-          className="space-y-3 rounded-2xl border-2 border-[#111827] bg-[#FEF2F2] p-6"
+          className="space-y-4 rounded-2xl border-2 border-[#111827] bg-[#FEF2F2] p-6"
         >
           <h2 className="text-lg font-extrabold text-[#991B1B]">
             {isEn ? "Administrator Access Only" : "Akses Khusus Administrator"}
           </h2>
           <p className="text-xs font-semibold leading-relaxed text-[#111827]">
-            {isEn ? (
-              <>
-                The active account ({profile.email}) is a standard student role (
-                <code>system_role = &apos;user&apos;</code>). Per security design,
-                moderation tools can only be opened by a designated Administrator in{" "}
-                <code>public.profiles</code>.
-              </>
-            ) : (
-              <>
-                Akun aktif ({profile.email}) berperan sebagai mahasiswa biasa (
-                <code>system_role = &apos;user&apos;</code>). Sesuai rancangan keamanan,
-                halaman moderasi hanya dapat dibuka oleh akun Administrator yang ditunjuk di
-                tabel <code>public.profiles</code>.
-              </>
+            {authUserId
+              ? isEn
+                ? `The active account (${profile.email}) is a standard user account. Moderation tools can only be opened by an Administrator account.`
+                : `Akun aktif (${profile.email}) berperan sebagai akun mahasiswa biasa. Halaman moderasi hanya dapat dibuka oleh akun Administrator resmi UnilakMart.`
+              : isEn
+                ? "Sign in with a designated Administrator account to open the UnilakMart moderation panel."
+                : "Masuk dengan akun Administrator yang ditunjuk untuk membuka panel moderasi UnilakMart."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {!authUserId && (
+              <Link
+                href="/masuk?next=/admin"
+                className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#15803D] px-5 text-xs font-bold text-white hover:bg-[#166534]"
+              >
+                {isEn ? "Sign In as Administrator" : "Masuk sebagai Administrator"}
+              </Link>
             )}
-          </p>
-          <p className="rounded-xl border border-[#111827]/25 bg-white p-3 font-mono text-[11px] text-[#334155]">
-            update public.profiles set system_role = &apos;admin&apos;, ktm_status =
-            &apos;Terverifikasi&apos; where email = &apos;{profile.email}&apos;;
-          </p>
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-4 text-xs font-bold text-[#111827]"
+            >
+              {isEn ? "Back to Home" : "Kembali ke Beranda"}
+            </Link>
+          </div>
         </section>
       ) : (
         <>
