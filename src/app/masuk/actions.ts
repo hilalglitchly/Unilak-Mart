@@ -218,7 +218,7 @@ export async function resetPasswordAction(input: {
     try {
       const supabase = await createClient();
       await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${getSiteUrl()}/auth/confirm?next=/profil`,
+        redirectTo: `${getSiteUrl()}/auth/confirm?flow=recovery&next=/profil`,
       });
     } catch {
       // Tetap kembalikan hasil netral agar status NIM/email tidak bocor

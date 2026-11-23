@@ -7,11 +7,22 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
+  const flow = searchParams.get("flow");
   const rawNext = searchParams.get("next") ?? "/profil";
   const next =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/profil";
 
+  const parsedNext = new URL(next, request.url);
   const redirectTo = request.nextUrl.clone();
+  const buildSuccessRedirect = (isRecovery: boolean) => {
+    redirectTo.pathname = parsedNext.pathname;
+    redirectTo.search = parsedNext.search;
+    if (isRecovery && parsedNext.pathname === "/profil") {
+      redirectTo.searchParams.set("mode", "reset-sandi");
+      redirectTo.hash = "ubah-sandi";
+    }
+    return NextResponse.redirect(redirectTo);
+  };
   redirectTo.search = "";
 
   try {
@@ -23,18 +34,12 @@ export async function GET(request: NextRequest) {
         token_hash: tokenHash,
       });
       if (!error) {
-        redirectTo.pathname = next;
-        if (type === "recovery" && next === "/profil") {
-          redirectTo.searchParams.set("mode", "reset-sandi");
-          redirectTo.hash = "ubah-sandi";
-        }
-        return NextResponse.redirect(redirectTo);
+        return buildSuccessRedirect(type === "recovery" || flow === "recovery");
       }
     } else if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
-        redirectTo.pathname = next;
-        return NextResponse.redirect(redirectTo);
+        return buildSuccessRedirect(flow === "recovery");
       }
     }
   } catch {

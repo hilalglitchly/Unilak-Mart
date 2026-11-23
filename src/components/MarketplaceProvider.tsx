@@ -610,19 +610,73 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     let active = true;
+    const supabase = createClient();
 
     void (async () => {
+      if (typeof window !== "undefined") {
+        // Tangani link pemulihan kata sandi dari Supabase Dashboard (implicit #access_token atau redirect ke /)
+        const rawHash = window.location.hash;
+        if (rawHash && rawHash.length > 1) {
+          const hashParams = new URLSearchParams(rawHash.slice(1));
+          const hashError = hashParams.get("error") || hashParams.get("error_description");
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+          const hashType = hashParams.get("type");
+
+          if (hashError) {
+            window.history.replaceState(null, "", window.location.pathname + window.location.search);
+            window.location.replace("/masuk?verif=gagal");
+            return;
+          }
+          if (accessToken && refreshToken) {
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            window.history.replaceState(null, "", window.location.pathname + window.location.search);
+            if (!active) return;
+            if (error) {
+              window.location.replace("/masuk?verif=gagal");
+              return;
+            }
+            if (hashType === "recovery") {
+              window.location.replace("/profil?mode=reset-sandi#ubah-sandi");
+              return;
+            }
+          }
+        }
+
+        const searchParams = new URLSearchParams(window.location.search);
+        if (
+          window.location.pathname === "/" &&
+          (searchParams.has("token_hash") || searchParams.has("code"))
+        ) {
+          if (searchParams.get("type") === "recovery" && !searchParams.has("flow")) {
+            searchParams.set("flow", "recovery");
+          }
+          window.location.replace(`/auth/confirm?${searchParams.toString()}`);
+          return;
+        }
+      }
+
       if (active) {
         await refreshSupabaseData();
       }
     })();
 
-    const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.access_token) {
         void supabase.realtime.setAuth(session.access_token);
+      }
+      if (
+        event === "PASSWORD_RECOVERY" &&
+        typeof window !== "undefined" &&
+        !window.location.search.includes("mode=reset-sandi")
+      ) {
+        window.location.replace("/profil?mode=reset-sandi#ubah-sandi");
+        return;
       }
       if (active) {
         void refreshSupabaseData();

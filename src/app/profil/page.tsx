@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ModalDialog } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -26,18 +26,44 @@ import {
   type UserProfile,
 } from "@/lib/preview-data";
 
-function RecoveryModeNotice({ isEn }: { isEn: boolean }) {
+function RecoveryModeNotice({
+  isEn,
+  showJumpLink = false,
+}: {
+  isEn: boolean;
+  showJumpLink?: boolean;
+}) {
   const params = useSearchParams();
-  if (params.get("mode") !== "reset-sandi") return null;
+  const isReset = params.get("mode") === "reset-sandi";
+
+  useEffect(() => {
+    if (!isReset || !showJumpLink) return;
+    const section = document.getElementById("ubah-sandi");
+    section?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("profil-pwd-baru")?.focus({ preventScroll: true });
+  }, [isReset, showJumpLink]);
+
+  if (!isReset) return null;
 
   return (
     <div
       role="status"
-      className="rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-extrabold text-[#14532D]"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-[#111827] bg-[#DCFCE7] p-3 text-xs font-extrabold text-[#14532D]"
     >
-      {isEn
-        ? "Password recovery link verified. Enter your new password below."
-        : "Tautan pemulihan kata sandi terverifikasi. Silakan ketik kata sandi baru Anda di bawah ini."}
+      <span>
+        {isEn
+          ? "Password recovery link verified. Enter your new password in the Security card below."
+          : "Tautan pemulihan kata sandi terverifikasi. Silakan ketik kata sandi baru Anda di kotak Ubah Kata Sandi."}
+      </span>
+      {showJumpLink && (
+        <a
+          href="#ubah-sandi"
+          onClick={() => document.getElementById("profil-pwd-baru")?.focus()}
+          className="inline-flex min-h-9 items-center rounded-lg border-2 border-[#111827] bg-white px-3 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4]"
+        >
+          {isEn ? "Go to New Password ->" : "Isi Kata Sandi Baru ->"}
+        </a>
+      )}
     </div>
   );
 }
@@ -870,6 +896,10 @@ export default function ProfilPage() {
           </Link>
         </div>
       </div>
+
+      <Suspense fallback={null}>
+        <RecoveryModeNotice isEn={isEn} showJumpLink />
+      </Suspense>
 
       {/* Ringkasan Status KTM */}
       <section
