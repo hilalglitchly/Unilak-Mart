@@ -79,7 +79,10 @@ function MobileBottomNav({
   const accountHref = isLoggedIn ? "/profil" : "/masuk";
   const accountActive = isLoggedIn
     ? isActivePath("/profil") || isActivePath("/admin")
-    : isActivePath("/masuk") || isActivePath("/profil");
+    : isActivePath("/masuk") ||
+      isActivePath("/daftar") ||
+      isActivePath("/lupa-sandi") ||
+      isActivePath("/profil");
 
   return (
     <nav
@@ -591,7 +594,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     {isEn ? "Sign In" : "Masuk"}
                   </Link>
                   <Link
-                    href="/masuk?tab=daftar"
+                    href="/daftar"
                     className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-2.5 py-2 text-xs font-extrabold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
                   >
                     {isEn ? "Sign Up" : "Buat Akun"}
@@ -658,7 +661,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     {isEn ? "Sign In" : "Masuk"}
                   </Link>
                   <Link
-                    href="/masuk?tab=daftar"
+                    href="/daftar"
                     onClick={() => setMobileMenuOpen(false)}
                     className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 text-xs font-extrabold text-white hover:bg-[#166534]"
                   >
