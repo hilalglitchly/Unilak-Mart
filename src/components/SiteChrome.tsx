@@ -309,13 +309,16 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     return () => ro.disconnect();
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const activeOrdersCount = orders.filter(
-    (o) =>
-      o.status === "Menunggu" ||
-      o.status === "Dijadwalkan" ||
-      o.status === "Sudah Diserahkan"
-  ).length;
+  const visibleNotifications = isLoggedIn ? notifications : [];
+  const unreadCount = visibleNotifications.filter((n) => !n.read).length;
+  const activeOrdersCount = isLoggedIn
+    ? orders.filter(
+        (o) =>
+          o.status === "Menunggu" ||
+          o.status === "Dijadwalkan" ||
+          o.status === "Sudah Diserahkan"
+      ).length
+    : 0;
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -964,7 +967,29 @@ export function SiteChrome({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {notifications.length === 0 ? (
+        {!isLoggedIn ? (
+          <div className="mt-4 space-y-3 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-5 text-center">
+            <p className="text-sm font-extrabold text-[#111827]">
+              {isEn
+                ? "Sign in to view your notifications"
+                : "Masuk untuk melihat notifikasi Anda"}
+            </p>
+            <p className="text-xs font-medium text-[#334155]">
+              {isEn
+                ? "Updates on KTM verification and campus COD orders will appear here once you sign in."
+                : "Kabar status verifikasi KTM dan pesanan COD kampus Anda akan muncul di sini setelah masuk."}
+            </p>
+            <div className="pt-1">
+              <Link
+                href="/masuk"
+                onClick={() => setNotifOpen(false)}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-5 text-xs font-extrabold text-white hover:bg-[#166534]"
+              >
+                {isEn ? "Sign In" : "Masuk"}
+              </Link>
+            </div>
+          </div>
+        ) : visibleNotifications.length === 0 ? (
           <div className="mt-4 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-5 text-center">
             <p className="text-sm font-bold text-[#111827]">
               {isEn ? "No new notifications" : "Belum ada notifikasi baru"}
@@ -977,7 +1002,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
           </div>
         ) : (
           <ul className="mt-3 max-h-[55vh] space-y-2.5 overflow-y-auto pr-1">
-            {notifications.map((notif) => (
+            {visibleNotifications.map((notif) => (
               <li
                 key={notif.id}
                 className={`rounded-2xl border-2 border-[#111827] p-3.5 ${

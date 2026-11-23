@@ -7,6 +7,7 @@ import { signInWithIdentifierAction } from "@/app/masuk/actions";
 import { AuthSplitShell } from "@/components/AuthSplitShell";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import { PasswordInput } from "@/components/PasswordInput";
+import { resolveSafeRedirectPath } from "@/lib/auth-redirect";
 
 function MasukPageContent() {
   const router = useRouter();
@@ -16,6 +17,7 @@ function MasukPageContent() {
 
   const legacyTab = searchParams.get("tab");
   const verifFailed = searchParams.get("verif") === "gagal";
+  const redirectTarget = resolveSafeRedirectPath(searchParams.get("next"), "/");
 
   // Pertahankan kompatibilitas tautan lama /masuk?tab=daftar atau ?tab=reset
   useEffect(() => {
@@ -72,10 +74,12 @@ function MasukPageContent() {
       setLoginError("");
       setLoginSuccess(
         isEn
-          ? "Signed in to UnilakMart. Loading your account session..."
-          : "Berhasil masuk ke UnilakMart. Mengambil sesi akun Anda..."
+          ? "Signed in to UnilakMart. Redirecting you..."
+          : "Berhasil masuk ke UnilakMart. Mengarahkan Anda..."
       );
       await refreshSupabaseData();
+      router.replace(redirectTarget);
+      router.refresh();
     } finally {
       setSubmitting(false);
     }

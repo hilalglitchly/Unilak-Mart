@@ -14,10 +14,31 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://unilak-mart.vercel.app");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "UnilakMart | Pasar Kampus & Etalase UMKM Mahasiswa Unilak",
   description:
     "Platform jual-beli buku kuliah, perlengkapan kos layak pakai, dan produk UMKM mahasiswa Universitas Lancang Kuning dengan transaksi COD di titik kampus.",
+  openGraph: {
+    title: "UnilakMart | Pasar Kampus & Etalase UMKM Mahasiswa Unilak",
+    description:
+      "Jual-beli buku kuliah, barang kos, dan produk UMKM mahasiswa Universitas Lancang Kuning. COD tunai aman di titik kampus dengan 0% biaya admin.",
+    siteName: "UnilakMart",
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "UnilakMart | Pasar Kampus & Etalase UMKM Mahasiswa Unilak",
+    description:
+      "Jual-beli buku kuliah, barang kos, dan UMKM mahasiswa Universitas Lancang Kuning dengan COD kampus 0% biaya admin.",
+  },
 };
 
 export const viewport: Viewport = {

@@ -12,6 +12,7 @@ import {
   getDisplayLabel,
 } from "../src/lib/preview-data.ts";
 import { runMarketplaceMaintenance } from "../src/lib/marketplace-maintenance.ts";
+import { resolveSafeRedirectPath } from "../src/lib/auth-redirect.ts";
 
 const ROOT = process.cwd();
 
@@ -140,4 +141,19 @@ test("vercel.json and realtime migration declare production lifecycle and public
   for (const tbl of ["notifications", "orders", "listings", "ktm_verifications"]) {
     assert.match(realtimeSql, new RegExp(tbl));
   }
+});
+
+test("resolveSafeRedirectPath permits internal paths and blocks open redirects or auth loops", () => {
+  assert.equal(resolveSafeRedirectPath("/admin"), "/admin");
+  assert.equal(
+    resolveSafeRedirectPath("/listing/kopi-risol-umkm?cod=1#form"),
+    "/listing/kopi-risol-umkm?cod=1#form"
+  );
+  assert.equal(resolveSafeRedirectPath("https://evil.example"), "/");
+  assert.equal(resolveSafeRedirectPath("//evil.example/admin"), "/");
+  assert.equal(resolveSafeRedirectPath("/\\evil.example"), "/");
+  assert.equal(resolveSafeRedirectPath("/masuk"), "/");
+  assert.equal(resolveSafeRedirectPath("/daftar?ref=1"), "/");
+  assert.equal(resolveSafeRedirectPath("/lupa-sandi"), "/");
+  assert.equal(resolveSafeRedirectPath(null, "/profil"), "/profil");
 });
