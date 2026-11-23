@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useMarketplace } from "@/components/MarketplaceProvider";
 
 export default function NotFound() {
+  const { locale } = useMarketplace();
+  const isEn = locale === "en";
+
   return (
     <main
       id="konten-utama"
@@ -11,11 +17,14 @@ export default function NotFound() {
           Error 404
         </span>
         <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-[#111827] sm:text-3xl">
-          Halaman atau Barang Tidak Ditemukan
+          {isEn
+            ? "Page or Listing Not Found"
+            : "Halaman atau Barang Tidak Ditemukan"}
         </h1>
         <p className="mx-auto mt-2.5 max-w-lg text-sm font-medium leading-relaxed text-[#334155]">
-          Tautan yang Anda buka mungkin sudah kedaluwarsa, barang sudah terjual
-          atau dihapus oleh penjual, atau alamat halaman salah ketik.
+          {isEn
+            ? "The link you opened may have expired, the item may have been sold or deleted by the seller, or the URL has a typo."
+            : "Tautan yang Anda buka mungkin sudah kedaluwarsa, barang sudah terjual atau dihapus oleh penjual, atau alamat halaman salah ketik."}
         </p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -23,13 +32,13 @@ export default function NotFound() {
             href="/"
             className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-5 text-sm font-extrabold text-white shadow-[3px_3px_0px_#111827] hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px]"
           >
-            Kembali ke Katalog
+            {isEn ? "Back to Catalog" : "Kembali ke Katalog"}
           </Link>
           <Link
             href="/jual"
             className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-5 text-sm font-extrabold text-[#111827] hover:bg-[#FEF9C3]"
           >
-            + Pasang Listing
+            {isEn ? "+ Create Listing" : "+ Pasang Listing"}
           </Link>
         </div>
       </section>

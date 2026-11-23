@@ -93,6 +93,7 @@ export function mapDbListingToProduct(
     alwaysAvailable: row.always_available,
     codSpots,
     faculty: row.faculty,
+    sellerId: row.seller_id ?? undefined,
     sellerName:
       seller?.display_name || row.seed_seller_name || "Mahasiswa Unilak",
     sellerProdi: seller?.unit_or_prodi || row.seed_seller_prodi || "",

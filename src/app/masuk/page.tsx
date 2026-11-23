@@ -32,7 +32,6 @@ function MasukPageContent() {
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPwd, setShowLoginPwd] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [loginError, setLoginError] = useState("");
   const [loginSuccess, setLoginSuccess] = useState("");
   const loginIdRef = useRef<HTMLInputElement>(null);
@@ -150,12 +149,20 @@ function MasukPageContent() {
         </div>
 
         <div>
-          <label
-            htmlFor="login-password"
-            className="block text-xs font-extrabold text-[#111827]"
-          >
-            {isEn ? "Password" : "Kata Sandi"} <span aria-hidden="true">*</span>
-          </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label
+              htmlFor="login-password"
+              className="block text-xs font-extrabold text-[#111827]"
+            >
+              {isEn ? "Password" : "Kata Sandi"} <span aria-hidden="true">*</span>
+            </label>
+            <Link
+              href="/lupa-sandi"
+              className="inline-flex min-h-11 items-center text-xs font-extrabold text-[#15803D] underline decoration-2 underline-offset-4 hover:text-[#166534]"
+            >
+              {isEn ? "Forgot password?" : "Lupa kata sandi?"}
+            </Link>
+          </div>
           <PasswordInput
             ref={loginPwdRef}
             id="login-password"
@@ -177,25 +184,6 @@ function MasukPageContent() {
             placeholder={isEn ? "Minimum 6 characters" : "Minimal 6 karakter"}
             className="font-medium"
           />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-xs font-bold text-[#334155]">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#15803D]"
-            />
-            <span>{isEn ? "Remember me" : "Ingat saya"}</span>
-          </label>
-
-          <Link
-            href="/lupa-sandi"
-            className="inline-flex min-h-11 items-center text-xs font-extrabold text-[#15803D] underline decoration-2 underline-offset-4 hover:text-[#166534]"
-          >
-            {isEn ? "Forgot password?" : "Lupa kata sandi?"}
-          </Link>
         </div>
 
         {loginError && (

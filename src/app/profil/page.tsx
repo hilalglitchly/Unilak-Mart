@@ -17,6 +17,7 @@ import {
   EN_KTM_STATUS_LABELS,
   FACULTIES,
   INITIAL_COD_SPOTS,
+  buildSellerSlug,
   formatRupiah,
   getDisplayLabel,
   type AppLocale,
@@ -630,6 +631,8 @@ export default function ProfilPage() {
     signOutAccount,
     products,
     myListingIds,
+    savedIds,
+    toggleSave,
     codSpots,
     updateMyListing,
     deleteMyListing,
@@ -651,6 +654,9 @@ export default function ProfilPage() {
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
 
   const myListings = products.filter((item) => myListingIds.includes(item.id));
+  const savedProducts = products.filter(
+    (item) => savedIds.includes(item.id) && !item.hidden
+  );
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const editingProduct = editingProductId
@@ -985,12 +991,22 @@ export default function ProfilPage() {
                 : "Ubah harga/stok, nonaktifkan sementara, atau tandai terjual."}
             </p>
           </div>
-          <Link
-            href="/jual"
-            className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#FDE047]"
-          >
-            {isEn ? "+ Post Listing" : "+ Pasang Listing"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {authUserId && (
+              <Link
+                href={`/penjual/${buildSellerSlug(profile.name, authUserId)}`}
+                className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4]"
+              >
+                {isEn ? "View My Storefront" : "Lihat Etalase Publik"}
+              </Link>
+            )}
+            <Link
+              href="/jual"
+              className="inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] bg-[#FACC15] px-4 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#FDE047]"
+            >
+              {isEn ? "+ Post Listing" : "+ Pasang Listing"}
+            </Link>
+          </div>
         </div>
 
         {listingError && (
@@ -1244,6 +1260,109 @@ export default function ProfilPage() {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      {/* Daftar Listing Disimpan (Bookmark Sinkron Supabase) */}
+      <section
+        id="listing-disimpan"
+        className="space-y-4 rounded-3xl border-2 border-[#111827] bg-white p-5 sm:p-6"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-extrabold text-[#111827]">
+              {isEn
+                ? `Saved Listings (${savedProducts.length})`
+                : `Listing Disimpan (${savedProducts.length})`}
+            </h2>
+            <p className="text-xs font-medium text-[#475569]">
+              {authUserId
+                ? isEn
+                  ? "Bookmarks are synced to your UnilakMart account across devices."
+                  : "Daftar simpanan tersinkron otomatis ke akun UnilakMart Anda."
+                : isEn
+                  ? "Sign in so your saved bookmarks stay synced across devices."
+                  : "Masuk akun agar daftar simpanan tersimpan permanen di perangkat lain."}
+            </p>
+          </div>
+          <Link
+            href="/#katalog"
+            className="inline-flex min-h-11 items-center rounded-xl border-2 border-[#111827] bg-white px-3.5 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4]"
+          >
+            {isEn ? "Browse Catalog" : "Jelajahi Katalog"}
+          </Link>
+        </div>
+
+        {savedProducts.length === 0 ? (
+          <div className="rounded-xl border border-[#111827]/25 bg-[#F8FAFC] p-5 text-center text-xs font-semibold text-[#475569]">
+            {isEn
+              ? "You have not saved any listings yet. Tap the bookmark icon on any product card to save it here."
+              : "Belum ada listing yang disimpan. Klik ikon bookmark pada kartu barang untuk menyimpannya di sini."}
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {savedProducts.map((item) => (
+              <li
+                key={`saved-${item.id}`}
+                className="flex flex-col justify-between gap-3 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#111827] p-1 ${item.cardBg}`}
+                  >
+                    {item.uploadedImages && item.uploadedImages[0] ? (
+                      <Image
+                        unoptimized
+                        src={item.uploadedImages[0]}
+                        alt={item.title}
+                        width={80}
+                        height={64}
+                        className="h-full w-full rounded-lg object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-extrabold text-[#111827]">
+                        {item.faculty}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <h3 className="line-clamp-2 text-sm font-extrabold text-[#111827]">
+                      <Link href={`/listing/${item.id}`} className="hover:underline">
+                        {item.title}
+                      </Link>
+                    </h3>
+                    <p className="text-xs font-extrabold text-[#15803D]">
+                      {formatRupiah(item.price, locale)}
+                    </p>
+                    <p className="text-[11px] font-semibold text-[#475569]">
+                      <Link
+                        href={`/penjual/${buildSellerSlug(item.sellerName, item.sellerId)}`}
+                        className="underline hover:text-[#111827]"
+                      >
+                        {item.sellerName}
+                      </Link>{" "}
+                      • {item.faculty}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/listing/${item.id}`}
+                    className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 text-xs font-extrabold text-white hover:bg-[#166534]"
+                  >
+                    {isEn ? "View & Order COD" : "Lihat & Pesan COD"}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleSave(item.id)}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2]"
+                  >
+                    {isEn ? "Remove" : "Hapus Simpanan"}
+                  </button>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </section>

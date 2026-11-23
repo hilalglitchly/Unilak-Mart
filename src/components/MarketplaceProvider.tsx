@@ -592,6 +592,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(INITIAL_PROFILE);
         setMyListingIds(INITIAL_MY_LISTING_IDS);
+        setSavedIds([]);
         setNotifications(INITIAL_NOTIFICATIONS);
         setOrders(INITIAL_ORDERS);
         setKtmQueue(INITIAL_KTM_QUEUE);
@@ -766,6 +767,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setAuthUserId(null);
       setProfile(INITIAL_PROFILE);
       setMyListingIds(INITIAL_MY_LISTING_IDS);
+      setSavedIds([]);
       setNotifications(INITIAL_NOTIFICATIONS);
       setOrders(INITIAL_ORDERS);
       setKtmQueue(INITIAL_KTM_QUEUE);
@@ -786,17 +788,27 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       const target = products.find((p) => p.id === id);
       if (target?.dbId) {
         const supabase = createClient();
-        if (currentlySaved) {
-          void supabase
-            .from("saved_listings")
-            .delete()
-            .eq("user_id", authUserId)
-            .eq("listing_id", target.dbId);
-        } else {
-          void supabase
-            .from("saved_listings")
-            .insert({ user_id: authUserId, listing_id: target.dbId });
-        }
+        const op = currentlySaved
+          ? supabase
+              .from("saved_listings")
+              .delete()
+              .eq("user_id", authUserId)
+              .eq("listing_id", target.dbId)
+          : supabase.from("saved_listings").upsert(
+              { user_id: authUserId, listing_id: target.dbId },
+              { onConflict: "user_id,listing_id", ignoreDuplicates: true }
+            );
+        void op.then(({ error }) => {
+          if (error) {
+            setSavedIds((prev) =>
+              currentlySaved
+                ? prev.includes(id)
+                  ? prev
+                  : [...prev, id]
+                : prev.filter((item) => item !== id)
+            );
+          }
+        });
       }
     }
   };

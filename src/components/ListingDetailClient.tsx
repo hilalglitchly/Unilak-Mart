@@ -7,6 +7,7 @@ import { ModalDialog, ProductIllustration } from "@/components/CartoonVisuals";
 import { useMarketplace } from "@/components/MarketplaceProvider";
 import {
   EN_CONDITION_LABELS,
+  buildSellerSlug,
   formatRupiah,
   getDisplayLabel,
 } from "@/lib/preview-data";
@@ -229,19 +230,30 @@ export function ListingDetailClient({ id }: { id: string }) {
                   {product.sellerName.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-extrabold text-[#111827]">
+                  <Link
+                    href={`/penjual/${buildSellerSlug(product.sellerName, product.sellerId)}`}
+                    className="text-sm font-extrabold text-[#111827] underline decoration-2 underline-offset-4 hover:text-[#15803D]"
+                  >
                     {product.sellerName}
-                  </p>
+                  </Link>
                   <p className="text-xs font-semibold text-[#334155]">
                     {product.sellerProdi} • {isEn ? "Faculty" : "Fakultas"} {product.faculty}
                   </p>
                 </div>
               </div>
-              {product.sellerVerified && (
-                <span className="rounded-lg border border-[#15803D] bg-[#DCFCE7] px-2.5 py-1 text-xs font-extrabold text-[#14532D]">
-                  {isEn ? "KTM Verified" : "KTM Terverifikasi"}
-                </span>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {product.sellerVerified && (
+                  <span className="rounded-lg border border-[#15803D] bg-[#DCFCE7] px-2.5 py-1 text-xs font-extrabold text-[#14532D]">
+                    {isEn ? "KTM Verified" : "KTM Terverifikasi"}
+                  </span>
+                )}
+                <Link
+                  href={`/penjual/${buildSellerSlug(product.sellerName, product.sellerId)}`}
+                  className="inline-flex min-h-10 items-center rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4]"
+                >
+                  {isEn ? "View Storefront" : "Lihat Etalase"}
+                </Link>
+              </div>
             </div>
 
             <p className="text-xs font-medium text-[#475569]">

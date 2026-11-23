@@ -109,6 +109,7 @@ export interface ProductItem {
   alwaysAvailable?: boolean;
   codSpots: string[];
   faculty: string;
+  sellerId?: string;
   sellerName: string;
   sellerProdi: string;
   sellerVerified: boolean;
@@ -819,4 +820,17 @@ export const INITIAL_CATEGORY_REFS: CategoryRefItem[] = [
   { slug: "jasa", name: "Jasa", active: true },
   { slug: "jajanan", name: "Jajanan Kampus", active: true },
 ];
+
+export function buildSellerSlug(
+  sellerName: string,
+  sellerId?: string | null
+): string {
+  const cleanId = sellerId?.trim();
+  if (cleanId) return cleanId;
+  const slug = sellerName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "penjual-unilak";
+}
 

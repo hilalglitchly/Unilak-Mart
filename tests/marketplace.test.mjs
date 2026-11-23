@@ -7,6 +7,7 @@ import {
   EN_CATEGORY_LABELS,
   INITIAL_COD_SPOTS,
   SAMPLE_PRODUCTS,
+  buildSellerSlug,
   buildWhatsAppUrl,
   formatRupiah,
   getDisplayLabel,
@@ -156,4 +157,12 @@ test("resolveSafeRedirectPath permits internal paths and blocks open redirects o
   assert.equal(resolveSafeRedirectPath("/daftar?ref=1"), "/");
   assert.equal(resolveSafeRedirectPath("/lupa-sandi"), "/");
   assert.equal(resolveSafeRedirectPath(null, "/profil"), "/profil");
+});
+
+test("buildSellerSlug preserves UUID seller IDs and slugifies seeded seller names", () => {
+  const uid = "209a8ac4-a87c-4835-a40a-18bd3f97b6a9";
+  assert.equal(buildSellerSlug("M Hilal Akram", uid), uid);
+  assert.equal(buildSellerSlug("Lapak Kopi FEB"), "lapak-kopi-feb");
+  assert.equal(buildSellerSlug("Studio Slide & Desain!"), "studio-slide-desain");
+  assert.equal(buildSellerSlug("   "), "penjual-unilak");
 });
