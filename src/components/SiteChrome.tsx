@@ -586,20 +586,26 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   </button>
                 </div>
               ) : (
-                <div className="hidden items-center gap-1 md:flex lg:gap-1.5">
-                  <Link
-                    href="/masuk"
-                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-white px-2.5 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                <Link
+                  href="/masuk"
+                  className="hidden min-h-11 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 py-2 text-xs font-extrabold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] md:inline-flex lg:px-4 lg:text-sm"
+                >
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.1"
+                    aria-hidden="true"
                   >
-                    {isEn ? "Sign In" : "Masuk"}
-                  </Link>
-                  <Link
-                    href="/daftar"
-                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-2.5 py-2 text-xs font-extrabold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
-                  >
-                    {isEn ? "Sign Up" : "Buat Akun"}
-                  </Link>
-                </div>
+                    <path
+                      d="M12 4h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3M8 14l4-4-4-4M12 10H4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>{isEn ? "Sign In" : "Masuk"}</span>
+                </Link>
               )}
 
               <button
@@ -652,20 +658,27 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-1.5 border-b border-[#111827]/20 pb-2.5">
+                <div className="border-b border-[#111827]/20 pb-2.5">
                   <Link
                     href="/masuk"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4]"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 text-xs font-extrabold text-white hover:bg-[#166534]"
                   >
-                    {isEn ? "Sign In" : "Masuk"}
-                  </Link>
-                  <Link
-                    href="/daftar"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 text-xs font-extrabold text-white hover:bg-[#166534]"
-                  >
-                    {isEn ? "Sign Up" : "Buat Akun"}
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.1"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M12 4h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3M8 14l4-4-4-4M12 10H4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span>{isEn ? "Sign In" : "Masuk"}</span>
                   </Link>
                 </div>
               )}
