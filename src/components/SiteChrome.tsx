@@ -20,12 +20,12 @@ function DesktopNavLinks({
   return (
     <nav
       aria-label={locale === "en" ? "Primary navigation" : "Navigasi utama"}
-      className="hidden items-center gap-1.5 md:flex"
+      className="hidden items-center gap-1 md:flex lg:gap-1.5"
     >
       <Link
         href="/"
         aria-current={isActivePath("/") ? "page" : undefined}
-        className={`inline-flex min-h-11 items-center rounded-xl px-3.5 text-sm font-bold transition-colors ${
+        className={`inline-flex min-h-11 items-center rounded-xl px-2.5 text-xs font-bold transition-colors lg:px-3.5 lg:text-sm ${
           isActivePath("/")
             ? "bg-[#DCFCE7] text-[#14532D] underline decoration-2 underline-offset-4"
             : "text-[#111827] hover:bg-[#F0FDF4]"
@@ -36,7 +36,7 @@ function DesktopNavLinks({
       <Link
         href="/jual"
         aria-current={isActivePath("/jual") ? "page" : undefined}
-        className={`inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] px-4 text-sm font-extrabold transition-transform active:translate-x-[1px] active:translate-y-[1px] ${
+        className={`inline-flex min-h-11 items-center rounded-full border-2 border-[#111827] px-3 text-xs font-extrabold transition-transform active:translate-x-[1px] active:translate-y-[1px] lg:px-4 lg:text-sm ${
           isActivePath("/jual")
             ? "bg-[#15803D] text-white"
             : "bg-[#FACC15] text-[#111827] hover:bg-[#FDE047]"
@@ -47,7 +47,7 @@ function DesktopNavLinks({
       <Link
         href="/pesanan"
         aria-current={isActivePath("/pesanan") ? "page" : undefined}
-        className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold transition-colors ${
+        className={`inline-flex min-h-11 items-center gap-1 rounded-xl px-2.5 text-xs font-bold transition-colors lg:gap-1.5 lg:px-3.5 lg:text-sm ${
           isActivePath("/pesanan")
             ? "bg-[#DCFCE7] text-[#14532D] underline decoration-2 underline-offset-4"
             : "text-[#111827] hover:bg-[#F0FDF4]"
@@ -66,14 +66,20 @@ function DesktopNavLinks({
 
 function MobileBottomNav({
   activeOrdersCount,
+  isLoggedIn,
   locale,
 }: {
   activeOrdersCount: number;
+  isLoggedIn: boolean;
   locale: "id" | "en";
 }) {
   const pathname = usePathname();
   const isActivePath = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const accountHref = isLoggedIn ? "/profil" : "/masuk";
+  const accountActive = isLoggedIn
+    ? isActivePath("/profil") || isActivePath("/admin")
+    : isActivePath("/masuk") || isActivePath("/profil");
 
   return (
     <nav
@@ -197,11 +203,19 @@ function MobileBottomNav({
 
         <li>
           <Link
-            href="/profil"
-            aria-label={locale === "en" ? "Profile" : "Profil"}
-            aria-current={isActivePath("/profil") || isActivePath("/admin") ? "page" : undefined}
-            className={`flex min-h-11 items-center justify-center rounded-xl px-1 ${
-              isActivePath("/profil") || isActivePath("/admin")
+            href={accountHref}
+            aria-label={
+              isLoggedIn
+                ? locale === "en"
+                  ? "KTM Profile"
+                  : "Profil KTM"
+                : locale === "en"
+                  ? "Sign In / Register"
+                  : "Masuk / Daftar"
+            }
+            aria-current={accountActive ? "page" : undefined}
+            className={`relative flex min-h-11 items-center justify-center rounded-xl px-1 ${
+              accountActive
                 ? "bg-[#DCFCE7] text-[#14532D] ring-1 ring-[#111827]"
                 : "text-[#111827] hover:bg-[#F0FDF4]"
             }`}
@@ -217,6 +231,12 @@ function MobileBottomNav({
               <circle cx="10" cy="7" r="3.2" />
               <path d="M4 17a6 6 0 0 1 12 0" strokeLinecap="round" />
             </svg>
+            {isLoggedIn && (
+              <span
+                aria-hidden="true"
+                className="absolute top-2 right-[calc(50%-14px)] h-2.5 w-2.5 rounded-full bg-[#15803D] ring-2 ring-white"
+              />
+            )}
           </Link>
         </li>
       </ul>
@@ -228,6 +248,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   const router = useRouter();
   const {
     authUserId,
+    signOutAccount,
     searchQuery,
     setSearchQuery,
     savedIds,
@@ -245,11 +266,30 @@ export function SiteChrome({ children }: { children: ReactNode }) {
     toggleTheme,
     resetThemeToSystem,
   } = useMarketplace();
-  const showAdminLink = Boolean(authUserId) && profile.systemRole === "admin";
+  const isLoggedIn = Boolean(authUserId);
+  const showAdminLink = isLoggedIn && profile.systemRole === "admin";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+
+  const handleHeaderSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    setMobileMenuOpen(false);
+    try {
+      await signOutAccount();
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     const headerEl = headerRef.current;
@@ -300,22 +340,22 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         ref={headerRef}
         className="border-b-2 border-[#111827] bg-white lg:sticky lg:top-0 lg:z-40"
       >
-        <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-6 lg:px-10">
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-5 lg:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 xl:gap-4">
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl py-0.5 pr-1 sm:gap-2.5"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl py-0.5 pr-1 lg:gap-2.5"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] text-sm font-extrabold text-[#FACC15] sm:h-10 sm:w-10 sm:text-lg">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] text-sm font-extrabold text-[#FACC15] lg:h-10 lg:w-10 lg:text-lg">
                 U
               </span>
-              <span className="text-sm font-extrabold tracking-tight text-[#111827] min-[380px]:text-base sm:text-xl">
+              <span className="text-sm font-extrabold tracking-tight text-[#111827] min-[380px]:text-base xl:text-xl">
                 unilakmart<span className="max-[370px]:hidden">.id</span>
               </span>
             </Link>
 
             {/* Form Pencarian dalam <search> semantik */}
-            <search className="order-3 w-full lg:order-2 lg:w-auto lg:max-w-md lg:flex-1">
+            <search className="order-3 w-full lg:order-2 lg:w-auto lg:max-w-xs lg:flex-1 xl:max-w-md">
               <form onSubmit={handleSearchSubmit}>
                 <label htmlFor="cari-produk" className="sr-only">
                   {isEn
@@ -408,11 +448,11 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                     ? "Switch language to Bahasa Indonesia (currently EN)"
                     : "Ubah bahasa ke Bahasa Inggris (saat ini ID)"
                 }
-                className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-xl border-2 border-[#111827] bg-white px-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] sm:px-2.5"
+                className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-xl border-2 border-[#111827] bg-white px-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] lg:px-2.5"
               >
                 <svg
                   viewBox="0 0 20 20"
-                  className="hidden h-4 w-4 sm:inline-block"
+                  className="hidden h-4 w-4 lg:inline-block"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -501,19 +541,63 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 )}
               </button>
 
-              {/* Profil pada desktop/tablet (di mobile sudah ada pada navigasi bawah) */}
-              <Link
-                href="/profil"
-                className="hidden min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-4 py-2 text-sm font-bold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] md:inline-flex"
-              >
-                {profile.ktmStatus === "Terverifikasi"
-                  ? isEn
-                    ? "KTM Profile"
-                    : "Profil KTM"
-                  : isEn
-                    ? "KTM Sign In"
-                    : "Masuk KTM"}
-              </Link>
+              {/* Aksi Akun Desktop/Tablet sesuai status login */}
+              {isLoggedIn ? (
+                <div className="hidden items-center gap-1.5 md:flex">
+                  <Link
+                    href="/profil"
+                    className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 py-2 text-xs font-bold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.1"
+                      aria-hidden="true"
+                    >
+                      <circle cx="10" cy="7" r="3.2" />
+                      <path d="M4 17a6 6 0 0 1 12 0" strokeLinecap="round" />
+                    </svg>
+                    <span>{isEn ? "KTM Profile" : "Profil KTM"}</span>
+                  </Link>
+                  <button
+                    id="btn-navbar-logout"
+                    type="button"
+                    disabled={signingOut}
+                    onClick={() => void handleHeaderSignOut()}
+                    aria-label={isEn ? "Log out of your account" : "Keluar dari akun"}
+                    className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-[#111827] bg-white px-2.5 py-2 text-xs font-bold text-[#991B1B] hover:bg-[#FEF2F2] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-60 lg:px-3 lg:text-sm"
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 4H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M12 14l4-4-4-4M16 10H8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span>{isEn ? "Log Out" : "Keluar"}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden items-center gap-1.5 md:flex">
+                  <Link
+                    href="/masuk"
+                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                  >
+                    {isEn ? "Sign In" : "Masuk"}
+                  </Link>
+                  <Link
+                    href="/masuk?tab=daftar"
+                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 py-2 text-xs font-extrabold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                  >
+                    {isEn ? "Sign Up" : "Buat Akun"}
+                  </Link>
+                </div>
+              )}
 
               <button
                 type="button"
@@ -535,6 +619,54 @@ export function SiteChrome({ children }: { children: ReactNode }) {
               }
               className="mt-2.5 flex flex-col gap-1.5 rounded-2xl border-2 border-[#111827] bg-[#F8FAFC] p-2.5 md:hidden"
             >
+              {/* Status Akun & Tombol Auth Mobile */}
+              {isLoggedIn ? (
+                <div className="space-y-2 border-b border-[#111827]/20 pb-2.5">
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <span className="truncate text-xs font-extrabold text-[#111827]">
+                      {profile.name}
+                    </span>
+                    <span className="shrink-0 rounded-md border border-[#111827] bg-[#DCFCE7] px-1.5 py-0.5 text-[10px] font-extrabold text-[#14532D]">
+                      {profile.ktmStatus}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Link
+                      href="/profil"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 text-xs font-extrabold text-white"
+                    >
+                      {isEn ? "KTM Profile" : "Profil KTM"}
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={signingOut}
+                      onClick={() => void handleHeaderSignOut()}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-extrabold text-[#991B1B] hover:bg-[#FEF2F2] disabled:opacity-60"
+                    >
+                      {isEn ? "Log Out" : "Keluar"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1.5 border-b border-[#111827]/20 pb-2.5">
+                  <Link
+                    href="/masuk"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-white px-3 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4]"
+                  >
+                    {isEn ? "Sign In" : "Masuk"}
+                  </Link>
+                  <Link
+                    href="/masuk?tab=daftar"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 text-xs font-extrabold text-white hover:bg-[#166534]"
+                  >
+                    {isEn ? "Sign Up" : "Buat Akun"}
+                  </Link>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-1.5 border-b border-[#111827]/20 pb-2">
                 <button
                   type="button"
@@ -614,13 +746,6 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                 className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-white"
               >
                 {isEn ? "Campus COD Spots" : "Titik COD Kampus"}
-              </Link>
-              <Link
-                href="/masuk"
-                onClick={() => setMobileMenuOpen(false)}
-                className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#111827] hover:bg-white"
-              >
-                {isEn ? "Sign In / Register" : "Masuk / Daftar Akun"}
               </Link>
               {showAdminLink && (
                 <Link
@@ -777,7 +902,11 @@ export function SiteChrome({ children }: { children: ReactNode }) {
       </footer>
 
       <Suspense fallback={null}>
-        <MobileBottomNav activeOrdersCount={activeOrdersCount} locale={locale} />
+        <MobileBottomNav
+          activeOrdersCount={activeOrdersCount}
+          isLoggedIn={isLoggedIn}
+          locale={locale}
+        />
       </Suspense>
 
       <ModalDialog

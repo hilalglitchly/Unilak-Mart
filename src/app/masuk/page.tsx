@@ -30,12 +30,24 @@ function AuthConfirmErrorBanner({ isEn }: { isEn: boolean }) {
   );
 }
 
-export default function MasukPage() {
+function MasukPageContent() {
   const { authUserId, profile, refreshSupabaseData, signOutAccount, locale } =
     useMarketplace();
   const isEn = locale === "en";
+  const searchParams = useSearchParams();
+  const urlTab: AuthMode =
+    searchParams.get("tab") === "daftar"
+      ? "daftar"
+      : searchParams.get("tab") === "reset"
+        ? "reset"
+        : "masuk";
 
-  const [mode, setMode] = useState<AuthMode>("masuk");
+  const [prevUrlTab, setPrevUrlTab] = useState<AuthMode>(urlTab);
+  const [mode, setMode] = useState<AuthMode>(urlTab);
+  if (urlTab !== prevUrlTab) {
+    setPrevUrlTab(urlTab);
+    setMode(urlTab);
+  }
   const [submitting, setSubmitting] = useState(false);
 
   // Mode Masuk
@@ -818,5 +830,13 @@ export default function MasukPage() {
         </form>
       )}
     </main>
+  );
+}
+
+export default function MasukPage() {
+  return (
+    <Suspense fallback={<main id="konten-utama" className="mx-auto max-w-2xl px-4 py-8" />}>
+      <MasukPageContent />
+    </Suspense>
   );
 }
