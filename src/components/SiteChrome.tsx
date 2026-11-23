@@ -415,7 +415,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
             </search>
 
             {/* Navigasi Utama + Bahasa ID/EN + Tema Dark/Light + Lonceng Notifikasi + Akun */}
-            <div className="order-2 flex items-center gap-1 sm:gap-2 lg:order-3">
+            <div className="order-2 flex items-center gap-1 lg:order-3 lg:gap-2">
               <Suspense
                 fallback={
                   <div className="hidden items-center gap-1.5 md:flex">
@@ -543,10 +543,10 @@ export function SiteChrome({ children }: { children: ReactNode }) {
 
               {/* Aksi Akun Desktop/Tablet sesuai status login */}
               {isLoggedIn ? (
-                <div className="hidden items-center gap-1.5 md:flex">
+                <div className="hidden items-center gap-1 md:flex lg:gap-1.5">
                   <Link
                     href="/profil"
-                    className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 py-2 text-xs font-bold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                    className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-2.5 py-2 text-xs font-bold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:gap-1.5 lg:px-3.5 lg:text-sm"
                   >
                     <svg
                       viewBox="0 0 20 20"
@@ -583,16 +583,16 @@ export function SiteChrome({ children }: { children: ReactNode }) {
                   </button>
                 </div>
               ) : (
-                <div className="hidden items-center gap-1.5 md:flex">
+                <div className="hidden items-center gap-1 md:flex lg:gap-1.5">
                   <Link
                     href="/masuk"
-                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-white px-3 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-white px-2.5 py-2 text-xs font-extrabold text-[#111827] hover:bg-[#F0FDF4] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
                   >
                     {isEn ? "Sign In" : "Masuk"}
                   </Link>
                   <Link
                     href="/masuk?tab=daftar"
-                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-3 py-2 text-xs font-extrabold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
+                    className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border-2 border-[#111827] bg-[#15803D] px-2.5 py-2 text-xs font-extrabold text-white hover:bg-[#166534] active:translate-x-[1px] active:translate-y-[1px] lg:px-3.5 lg:text-sm"
                   >
                     {isEn ? "Sign Up" : "Buat Akun"}
                   </Link>
